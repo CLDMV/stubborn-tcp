@@ -1,6 +1,6 @@
 {
 	"name": "@cldmv/stubborn-tcp",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "A stubbornly persistent TCP client that automatically reconnects when connections fail",
 	"main": "./index.cjs",
 	"module": "./index.mjs",
@@ -12,9 +12,8 @@
 	},
 	"scripts": {
 		"test": "node test/integration-test.mjs",
-		"test:basic": "node test/test.mjs",
-		"test:features": "node test/test-features.mjs",
-		"test:all": "npm run test:basic && npm run test:features && npm run test",
+		"test:cjs": "node test/test-cjs-import.cjs",
+		"test:all": "npm run test:cjs && npm run test",
 		"build": "node scripts/build-cjs.mjs"
 	},
 	"keywords": [
