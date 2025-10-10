@@ -11,7 +11,10 @@
 		}
 	},
 	"scripts": {
-		"test": "node test/test.mjs",
+		"test": "node test/integration-test.mjs",
+		"test:basic": "node test/test.mjs",
+		"test:features": "node test/test-features.mjs",
+		"test:all": "npm run test:basic && npm run test:features && npm run test",
 		"build": "node scripts/build-cjs.mjs"
 	},
 	"keywords": [
