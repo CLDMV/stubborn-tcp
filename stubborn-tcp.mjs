@@ -6,7 +6,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Hyson <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2025-10-10 06:46:32 -07:00 (1760103992)
+ *	@Last modified time: 2025-10-10 17:34:01 -07:00 (1760142841)
  *	-----
  *	@Copyright: Copyright (c) 2013-2025 Catalyzed Motivation Inc. All rights reserved.
  */
@@ -47,20 +47,21 @@ import { EventEmitter } from "events";
  * @param {boolean} [options.keepAlive=true] - Enable TCP keep-alive
  * @param {number} [options.keepAliveInitialDelay=60000] - Initial delay for keep-alive probes in milliseconds
  * @param {boolean} [options.noDelay=true] - Disable Nagle's algorithm for low-latency
- * @param {number} [options.connectionTimeout=10000] - Connection timeout in milliseconds
+ * @param {number} [options.connectionTimeout=10000] - Connection timeout in milliseconds (0 or negative to disable)
  * @param {boolean} [options.tls=false] - Enable TLS/SSL encryption
  * @param {object} [options.tlsOptions={}] - TLS/SSL configuration options
  *
- * @fires StubbornTCP#connect - Emitted when connection is established
- * @fires StubbornTCP#data - Emitted when data is received
- * @fires StubbornTCP#disconnect - Emitted when connection is closed
- * @fires StubbornTCP#error - Emitted when an error occurs
- * @fires StubbornTCP#maxReconnectAttemptsReached - Emitted when max reconnect attempts reached
- * @fires StubbornTCP#heartbeat - Emitted when heartbeat is sent
- * @fires StubbornTCP#heartbeatFailed - Emitted when heartbeat function fails
- * @fires StubbornTCP#secureConnect - Emitted when TLS secure connection is established
- * @fires StubbornTCP#keylog - Emitted when TLS key material is generated or received
- * @fires StubbornTCP#OCSPResponse - Emitted when OCSP response is received
+ * @fires StubbornTCP#connect - Emitted when connection is established (handle, instance)
+ * @fires StubbornTCP#data - Emitted when data is received (data, handle, instance)
+ * @fires StubbornTCP#disconnect - Emitted when connection is closed (handle, instance)
+ * @fires StubbornTCP#error - Emitted when an error occurs (error, handle, instance)
+ * @fires StubbornTCP#maxReconnectAttemptsReached - Emitted when max reconnect attempts reached (attempts)
+ * @fires StubbornTCP#heartbeat - Emitted when heartbeat is sent (handle, instance)
+ * @fires StubbornTCP#heartbeatFailed - Emitted when heartbeat function fails (error, functionIndex, handle, instance)
+ * @fires StubbornTCP#secureConnect - Emitted when TLS secure connection is established (handle, instance)
+ * @fires StubbornTCP#keylog - Emitted when TLS key material is generated or received (line, handle, instance)
+ * @fires StubbornTCP#OCSPResponse - Emitted when OCSP response is received (response, handle, instance)
+ * @fires StubbornTCP#debug - Emitted for debug logging when debug mode is enabled (message, handle, instance)
  *
  * @example
  * // ESM import with callbacks (can be called with or without 'new')
@@ -94,6 +95,8 @@ import { EventEmitter } from "events";
  * client.on('disconnect', () => console.log('Disconnected!'));
  * client.on('error', (err) => console.log('Error:', err));
  * client.on('maxReconnectAttemptsReached', (attempts) => console.log(`Gave up after ${attempts} attempts`));
+ * // Listen for debug messages when debug mode is enabled
+ * client.on('debug', (message) => console.log('DEBUG:', message));
  *
  * @example
  * // CommonJS require with mixed callback and direct assignment
@@ -356,14 +359,25 @@ function StubbornTCP(options = {}) {
 	self.Handle = self.handle; // Legacy support
 	self.lCPrefix = `[StubbornTCP#${self.handle}] `;
 
-	if (self.settings.debug) console.log(`${self.lCPrefix}initialized`);
+	/**
+	 * Emit debug message if debug mode is enabled
+	 * @private
+	 * @param {string} message - Debug message to emit
+	 */
+	const emitDebug = (message) => {
+		if (self.settings.debug) {
+			self.emit("debug", `${self.lCPrefix}${message}`, self.handle, self);
+		}
+	};
+
+	emitDebug("initialized");
 
 	/**
 	 * Set delay between transmitted messages (not implemented)
 	 * @param {number} ms - Milliseconds to delay
 	 */
 	self.setTxInterMsgDelay = (ms) => {
-		if (self.settings.debug) console.log(`${self.lCPrefix}setTxInterMsgDelay() called - not implemented`);
+		emitDebug("setTxInterMsgDelay() called - not implemented");
 	};
 	self.SetTxInterMsgDelay = self.setTxInterMsgDelay; // Legacy support
 
@@ -371,7 +385,7 @@ function StubbornTCP(options = {}) {
 	 * Add RX framing (not implemented)
 	 */
 	self.addRxFraming = () => {
-		if (self.settings.debug) console.log(`${self.lCPrefix}addRxFraming() called - not implemented`);
+		emitDebug("addRxFraming() called - not implemented");
 	};
 	self.AddRxFraming = self.addRxFraming; // Legacy support
 
@@ -379,7 +393,7 @@ function StubbornTCP(options = {}) {
 	 * Add HTTP RX framing (not implemented)
 	 */
 	self.addRxHTTPFraming = () => {
-		if (self.settings.debug) console.log(`${self.lCPrefix}addRxHTTPFraming() called - not implemented`);
+		emitDebug("addRxHTTPFraming() called - not implemented");
 	};
 	self.AddRxHTTPFraming = self.addRxHTTPFraming; // Legacy support
 
@@ -406,7 +420,7 @@ function StubbornTCP(options = {}) {
 	const sendHeartbeat = () => {
 		if (!self.settings.heartbeat.enabled || self._connectState !== 1) return;
 
-		if (self.settings.debug) console.log(`${self.lCPrefix}sending heartbeat`);
+		emitDebug("sending heartbeat");
 
 		// Emit heartbeat event
 		self.emit("heartbeat", self.handle, self);
@@ -421,7 +435,7 @@ function StubbornTCP(options = {}) {
 					func(self);
 				}
 			} catch (e) {
-				if (self.settings.debug) console.log(`${self.lCPrefix}Error in heartbeat function ${currentIndex}:`, e);
+				emitDebug(`Error in heartbeat function ${currentIndex}: ${e.message}`);
 				self.emit("heartbeatFailed", e, currentIndex, self.handle, self);
 			}
 
@@ -473,10 +487,7 @@ function StubbornTCP(options = {}) {
 
 		self.settings.heartbeat.enabled = true;
 
-		if (self.settings.debug)
-			console.log(
-				`${self.lCPrefix}heartbeat enabled - interval: ${self.settings.heartbeat.interval}ms, functions: ${self.settings.heartbeat.functions.length}`
-			);
+		emitDebug(`heartbeat enabled - interval: ${self.settings.heartbeat.interval}ms, functions: ${self.settings.heartbeat.functions.length}`);
 
 		// Start heartbeat if connected
 		if (self._connectState === 1) {
@@ -489,7 +500,7 @@ function StubbornTCP(options = {}) {
 	 * Disable heartbeat functionality
 	 */
 	self.disableHeartbeat = () => {
-		if (self.settings.debug) console.log(`${self.lCPrefix}heartbeat disabled`);
+		emitDebug("heartbeat disabled");
 		self.settings.heartbeat.enabled = false;
 		if (self.settings.heartbeat.timer) {
 			clearTimeout(self.settings.heartbeat.timer);
@@ -509,7 +520,7 @@ function StubbornTCP(options = {}) {
 		}
 		// Reset index to start from beginning when functions are added
 		self.settings.heartbeat.currentFunctionIndex = 0;
-		if (self.settings.debug) console.log(`${self.lCPrefix}heartbeat functions added, total: ${self.settings.heartbeat.functions.length}`);
+		emitDebug(`heartbeat functions added, total: ${self.settings.heartbeat.functions.length}`);
 	};
 
 	/**
@@ -518,7 +529,7 @@ function StubbornTCP(options = {}) {
 	self.clearHeartbeatFunctions = () => {
 		self.settings.heartbeat.functions = [];
 		self.settings.heartbeat.currentFunctionIndex = 0;
-		if (self.settings.debug) console.log(`${self.lCPrefix}heartbeat functions cleared`);
+		emitDebug("heartbeat functions cleared");
 	};
 
 	/**
@@ -535,7 +546,7 @@ function StubbornTCP(options = {}) {
 		// Apply to existing connection if available
 		if (client && self._connectState === 1) {
 			client.setKeepAlive(enable, self.settings.socket.keepAliveInitialDelay);
-			if (self.settings.debug) console.log(`${self.lCPrefix}keep-alive ${enable ? "enabled" : "disabled"}`);
+			emitDebug(`keep-alive ${enable ? "enabled" : "disabled"}`);
 		}
 	};
 
@@ -549,7 +560,7 @@ function StubbornTCP(options = {}) {
 		// Apply to existing connection if available
 		if (client && self._connectState === 1) {
 			client.setNoDelay(noDelay);
-			if (self.settings.debug) console.log(`${self.lCPrefix}no-delay ${noDelay ? "enabled" : "disabled"}`);
+			emitDebug(`no-delay ${noDelay ? "enabled" : "disabled"}`);
 		}
 	};
 
@@ -562,8 +573,13 @@ function StubbornTCP(options = {}) {
 
 		// Apply to existing connection if available
 		if (client && self._connectState === 1) {
-			client.setTimeout(timeout);
-			if (self.settings.debug) console.log(`${self.lCPrefix}timeout set to ${timeout}ms`);
+			if (timeout > 0) {
+				client.setTimeout(timeout);
+				emitDebug(`timeout set to ${timeout}ms`);
+			} else {
+				client.setTimeout(0); // Disable timeout
+				emitDebug("timeout disabled");
+			}
 		}
 	};
 
@@ -646,7 +662,7 @@ function StubbornTCP(options = {}) {
 			self.settings.autoReconnect.attempts = 0;
 			self.settings.autoReconnect.currentDelay = self.settings.autoReconnect.delay;
 
-			if (self.settings.debug) console.log(`${self.lCPrefix}connected to ${host}:${port}`);
+			emitDebug(`connected to ${host}:${port}`);
 
 			// Emit connect event
 			self.emit("connect", self.handle, self);
@@ -656,7 +672,7 @@ function StubbornTCP(options = {}) {
 				try {
 					self.functions.onConnect(self.handle, self);
 				} catch (e) {
-					if (self.settings.debug) console.log(`${self.lCPrefix}Error in OnConnectFunc:`, e);
+					emitDebug(`Error in OnConnectFunc: ${e.message}`);
 				}
 			}
 
@@ -685,7 +701,7 @@ function StubbornTCP(options = {}) {
 		if (self.settings.connection.timeout > 0) {
 			client.setTimeout(self.settings.connection.timeout);
 			client.on("timeout", () => {
-				if (self.settings.debug) console.log(`${self.lCPrefix}connection timeout`);
+				emitDebug("connection timeout");
 
 				// Emit timeout event
 				self.emit("timeout", self.handle, self);
@@ -695,7 +711,7 @@ function StubbornTCP(options = {}) {
 					try {
 						self.functions.onTimeout(self.handle, self);
 					} catch (e) {
-						if (self.settings.debug) console.log(`${self.lCPrefix}Error in onTimeout callback:`, e);
+						emitDebug(`Error in onTimeout callback: ${e.message}`);
 					}
 				}
 
@@ -708,18 +724,17 @@ function StubbornTCP(options = {}) {
 			resetHeartbeatTimer();
 
 			// Emit data event
-			self.emit("data", data, self);
+			self.emit("data", data, self.handle, self);
 
 			// Call rx callback (legacy support)
 			if (typeof self.functions.rxFunc === "function") {
 				try {
 					self.functions.rxFunc(data, self);
 				} catch (e) {
-					if (self.settings.debug) console.log(`${self.lCPrefix}Error in rxFunc:`, e);
+					emitDebug(`Error in rxFunc: ${e.message}`);
 				}
 			}
 		});
-
 		client.on("close", () => {
 			self._connectState = 0;
 
@@ -729,7 +744,7 @@ function StubbornTCP(options = {}) {
 				self.settings.heartbeat.timer = null;
 			}
 
-			if (self.settings.debug) console.log(`${self.lCPrefix}connection closed`);
+			emitDebug("connection closed");
 
 			// Emit disconnect event
 			self.emit("disconnect", self.handle, self);
@@ -739,7 +754,7 @@ function StubbornTCP(options = {}) {
 				try {
 					self.functions.onDisconnect(self.handle, self);
 				} catch (e) {
-					if (self.settings.debug) console.log(`${self.lCPrefix}Error in OnDisconnectFunc:`, e);
+					emitDebug(`Error in OnDisconnectFunc: ${e.message}`);
 				}
 			}
 
@@ -750,8 +765,7 @@ function StubbornTCP(options = {}) {
 					self.settings.autoReconnect.maxAttempts > 0 &&
 					self.settings.autoReconnect.attempts >= self.settings.autoReconnect.maxAttempts
 				) {
-					if (self.settings.debug)
-						console.log(`${self.lCPrefix}max reconnect attempts (${self.settings.autoReconnect.maxAttempts}) reached`);
+					emitDebug(`max reconnect attempts (${self.settings.autoReconnect.maxAttempts}) reached`);
 					self.emit("maxReconnectAttemptsReached", self.settings.autoReconnect.attempts);
 					return;
 				}
@@ -759,10 +773,7 @@ function StubbornTCP(options = {}) {
 				self.settings.autoReconnect.isReconnecting = true;
 				self.settings.autoReconnect.attempts++;
 
-				if (self.settings.debug)
-					console.log(
-						`${self.lCPrefix}schedule reconnect attempt ${self.settings.autoReconnect.attempts} in ${self.settings.autoReconnect.currentDelay}ms`
-					);
+				emitDebug(`schedule reconnect attempt ${self.settings.autoReconnect.attempts} in ${self.settings.autoReconnect.currentDelay}ms`);
 
 				if (self.settings.autoReconnect.timer) {
 					clearTimeout(self.settings.autoReconnect.timer);
@@ -773,10 +784,7 @@ function StubbornTCP(options = {}) {
 					self.settings.autoReconnect.isReconnecting = false;
 					if (self._connectState === 0 && self.settings.autoReconnect.enabled) {
 						// Still disconnected and allowed to reconnect
-						if (self.settings.debug)
-							console.log(
-								`${self.lCPrefix}reconnect attempt ${self.settings.autoReconnect.attempts} [${self.settings.connection.host}:${self.settings.connection.port}]`
-							);
+						emitDebug(`reconnect attempt ${self.settings.autoReconnect.attempts} [${self.settings.connection.host}:${self.settings.connection.port}]`);
 						createClient(self.settings.connection.host, self.settings.connection.port);
 					}
 				}, self.settings.autoReconnect.currentDelay);
@@ -790,7 +798,7 @@ function StubbornTCP(options = {}) {
 		});
 
 		client.on("error", (err) => {
-			if (self.settings.debug) console.log(`${self.lCPrefix}connection error:`, err.message);
+			emitDebug(`connection error: ${err.message}`);
 
 			// Emit error event
 			self.emit("error", err, self.handle, self);
@@ -800,7 +808,7 @@ function StubbornTCP(options = {}) {
 				try {
 					self.functions.onError(self.handle, self, err);
 				} catch (e) {
-					if (self.settings.debug) console.log(`${self.lCPrefix}Error in onError:`, e);
+					emitDebug(`Error in onError: ${e.message}`);
 				}
 			}
 		});
@@ -808,13 +816,11 @@ function StubbornTCP(options = {}) {
 		// TLS-specific event handlers
 		if (self.settings.tls.enabled) {
 			client.on("secureConnect", () => {
-				if (self.settings.debug) {
-					console.log(`${self.lCPrefix}TLS secure connection established`);
-					if (client.authorized) {
-						console.log(`${self.lCPrefix}TLS certificate authorized`);
-					} else {
-						console.log(`${self.lCPrefix}TLS certificate not authorized:`, client.authorizationError?.message);
-					}
+				emitDebug("TLS secure connection established");
+				if (client.authorized) {
+					emitDebug("TLS certificate authorized");
+				} else {
+					emitDebug(`TLS certificate not authorized: ${client.authorizationError?.message}`);
 				}
 				self.emit("secureConnect", self.handle, self);
 			});
@@ -844,11 +850,11 @@ function StubbornTCP(options = {}) {
 				resetHeartbeatTimer();
 				return true;
 			} catch (e) {
-				if (self.settings.debug) console.log(`${self.lCPrefix}write error:`, e);
+				emitDebug(`write error: ${e.message}`);
 				return false;
 			}
 		} else {
-			if (self.settings.debug) console.log(`${self.lCPrefix}write called but not connected`);
+			emitDebug("write called but not connected");
 			return false;
 		}
 	};
@@ -858,7 +864,7 @@ function StubbornTCP(options = {}) {
 	 * Reset reconnection state (attempts and delay)
 	 */
 	self.resetReconnectState = () => {
-		if (self.settings.debug) console.log(`${self.lCPrefix}resetReconnectState() called`);
+		emitDebug("resetReconnectState() called");
 		self.settings.autoReconnect.attempts = 0;
 		self.settings.autoReconnect.currentDelay = self.settings.autoReconnect.delay;
 	};
@@ -868,7 +874,7 @@ function StubbornTCP(options = {}) {
 	 * Close the TCP connection and disable auto-reconnect
 	 */
 	self.close = () => {
-		if (self.settings.debug) console.log(`${self.lCPrefix}close() called`);
+		emitDebug("close() called");
 		self.settings.autoReconnect.enabled = false;
 		if (self.settings.autoReconnect.timer) {
 			clearTimeout(self.settings.autoReconnect.timer);
@@ -894,7 +900,7 @@ function StubbornTCP(options = {}) {
 	 * @returns {object} This TCP instance
 	 */
 	self.open = (host, port, instance, bufferSizeArg) => {
-		if (self.settings.debug) console.log(`${self.lCPrefix}open(${host}:${port})`);
+		emitDebug(`open(${host}:${port})`);
 
 		// Close existing connection if open
 		if (self._connectState === 1) self.close();

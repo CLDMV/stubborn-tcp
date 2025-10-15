@@ -1,6 +1,6 @@
 {
 	"name": "@cldmv/stubborn-tcp",
-	"version": "1.0.1",
+	"version": "1.0.3",
 	"description": "A stubbornly persistent TCP client that automatically reconnects when connections fail",
 	"main": "./index.cjs",
 	"module": "./index.mjs",
@@ -26,17 +26,31 @@
 		"network",
 		"connection"
 	],
-	"author": "CLDMV",
+	"author": {
+		"name": "Shinrai",
+		"company": "CLDMV",
+		"email": "git+npm@cldmv.net",
+		"url": "https://cldmv.net"
+	},
+	"contributors": [
+		{
+			"name": "CLDMV",
+			"url": "https://github.com/CLDMV"
+		}
+	],
 	"license": "Apache-2.0",
 	"engines": {
 		"node": ">=14.0.0"
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/CLDMV/stubborn-tcp.git"
+		"url": "git+https://github.com/CLDMV/stubborn-tcp.git"
 	},
 	"bugs": {
 		"url": "https://github.com/CLDMV/stubborn-tcp/issues"
 	},
-	"homepage": "https://github.com/CLDMV/stubborn-tcp#readme"
+	"homepage": "https://github.com/CLDMV/stubborn-tcp#readme",
+	"publishConfig": {
+		"access": "restricted"
+	}
 }
