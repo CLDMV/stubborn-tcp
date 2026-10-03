@@ -12,7 +12,7 @@
  */
 
 import net from "net";
-import tls from "tls";
+import nodeTls from "tls";
 import { EventEmitter } from "events";
 
 /**
@@ -690,7 +690,7 @@ function StubbornTCP(options = {}) {
 				port,
 				...self.settings.tls.options
 			};
-			client = tls.connect(tlsOptions, handleConnection);
+			client = nodeTls.connect(tlsOptions, handleConnection);
 		} else {
 			// Create regular TCP socket
 			client = new net.Socket();
