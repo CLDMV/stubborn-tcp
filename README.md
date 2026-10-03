@@ -349,7 +349,7 @@ client.open();
 
 ## Compatibility
 
-- **Node.js**: 14.0+ (ES Modules support required)
+- **Node.js**: 14.0+ for `import`; `require()` needs Node.js ^20.19.0 or >=22.12.0 (it loads the ES module build through `require(esm)`, and throws `ERR_REQUIRE_ESM` with a pointer to `import()` on older versions)
 - **Operating Systems**: Windows, macOS, Linux
 - **Protocol Support**: TCP and TLS/SSL
 - **Legacy API**: Maintained for backward compatibility
@@ -378,7 +378,7 @@ The client handles various error conditions gracefully:
 ## Compatibility
 
 - **Node.js**: >= 14.0.0
-- **Module Systems**: ESM and CommonJS
+- **Module Systems**: ESM (`import`) and CommonJS (`require()`, Node.js ^20.19.0 or >=22.12.0)
 - **Platforms**: Windows, macOS, Linux
 
 ## Contributing

@@ -1,21 +1,24 @@
 /**
+ *
  *	@Project: @cldmv/stubborn-tcp
- *	@Filename: /test/test-cjs-import.cjs
- *	@Date: 2025-10-10 13:52:00 -07:00 (1760129520)
- *	@Author: Nate Hyson <CLDMV>
+ *	@Filename: /tests/cjs/entry.test.cjs
+ *	@Date: 2025-10-10T13:52:00-07:00 (1760129520)
+ *	@Author: Nate Corcoran <CLDMV>
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
- *	@Last modified by: Nate Hyson <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-03T10:24:25-07:00 (1791048265)
+ *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
+ *	@Last modified time: 2026-10-03T11:39:18-07:00 (1791052758)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+ *
  */
 
 /**
- * CommonJS entry tests. These run under Node's own test runner (`node --test`), not the
- * ESM integration test: it cannot show whether a plain `require()` of the package works
- * the way it does for a CommonJS consumer. No real network connection is opened here —
- * instances are constructed but never `.open()`'d.
+ * CommonJS entry tests against the BUILT package (dist/), run under Node's own test runner
+ * (`node --test`, via `npm run test:cjs`, which builds first) — not Vitest: Vitest loads
+ * files through its own module runner, so it cannot show whether a plain `require()` of
+ * the package works the way it does for a CommonJS consumer. No network connection is
+ * opened here — instances are constructed but never `.open()`'d.
  */
 "use strict";
 
@@ -24,20 +27,22 @@ const assert = require("node:assert/strict");
 const { spawnSync } = require("node:child_process");
 const path = require("node:path");
 
-const repoRoot = path.resolve(__dirname, "..");
+const repoRoot = path.resolve(__dirname, "../..");
 
 test("require() returns the same StubbornTCP constructor as import", async () => {
-	const cjs = require("../index.cjs");
-	const esm = await import("../index.mjs");
+	const cjs = require("../../dist/index.cjs");
+	const esm = await import("../../dist/index.mjs");
 
 	assert.equal(cjs, esm.default);
 	assert.equal(cjs.StubbornTCP, esm.default);
 	assert.equal(cjs.default, esm.default);
+	assert.equal(esm.StubbornTCP, esm.default);
 	assert.equal(typeof cjs, "function");
+	assert.equal(cjs.name, "StubbornTCP");
 });
 
 test("require()'d constructor builds a working instance", () => {
-	const StubbornTCP = require("../index.cjs");
+	const StubbornTCP = require("../../dist/index.cjs");
 
 	const client1 = new StubbornTCP({ debug: false });
 	assert.ok(client1.handle !== undefined && client1.handle !== null);
@@ -63,7 +68,7 @@ test("require()'d constructor builds a working instance", () => {
 test("require() fails with a clear message where Node.js has no require(esm)", () => {
 	// --no-experimental-require-module turns require(esm) off, which is what Node.js
 	// versions before 20.19 / 22.12 look like to the entry.
-	const res = spawnSync(process.execPath, ["--no-experimental-require-module", "-e", "require('./index.cjs')"], {
+	const res = spawnSync(process.execPath, ["--no-experimental-require-module", "-e", "require('./dist/index.cjs')"], {
 		cwd: repoRoot,
 		encoding: "utf8"
 	});
