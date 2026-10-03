@@ -11,9 +11,9 @@
 		}
 	},
 	"scripts": {
-		"test": "node test/integration-test.mjs",
-		"test:cjs": "node test/test-cjs-import.cjs",
-		"test:all": "npm run test:cjs && npm run test",
+		"test": "npm run test:cjs && node test/integration-test.mjs",
+		"test:cjs": "node --test test/test-cjs-import.cjs",
+		"test:all": "npm run test",
 		"build": "node scripts/build-cjs.mjs"
 	},
 	"keywords": [
