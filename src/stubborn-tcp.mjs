@@ -1,18 +1,20 @@
 /**
+ *
  *	@Project: @cldmv/stubborn-tcp
- *	@Filename: /stubborn-tcp.mjs
- *	@Date: 2025-10-06 17:04:41 -07:00 (1759795481)
- *	@Author: Nate Hyson <CLDMV>
+ *	@Filename: /src/stubborn-tcp.mjs
+ *	@Date: 2025-10-06T17:04:41-07:00 (1759795481)
+ *	@Author: Nate Corcoran <CLDMV>
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
- *	@Last modified by: Nate Hyson <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2025-10-10 17:34:01 -07:00 (1760142841)
+ *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
+ *	@Last modified time: 2026-10-03T11:39:09-07:00 (1791052749)
  *	-----
- *	@Copyright: Copyright (c) 2013-2025 Catalyzed Motivation Inc. All rights reserved.
+ *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+ *
  */
 
 import net from "net";
-import tls from "tls";
+import nodeTls from "tls";
 import { EventEmitter } from "events";
 
 /**
@@ -376,6 +378,7 @@ function StubbornTCP(options = {}) {
 	 * Set delay between transmitted messages (not implemented)
 	 * @param {number} ms - Milliseconds to delay
 	 */
+	// eslint-disable-next-line no-unused-vars -- documented legacy signature; the method is a no-op
 	self.setTxInterMsgDelay = (ms) => {
 		emitDebug("setTxInterMsgDelay() called - not implemented");
 	};
@@ -487,7 +490,9 @@ function StubbornTCP(options = {}) {
 
 		self.settings.heartbeat.enabled = true;
 
-		emitDebug(`heartbeat enabled - interval: ${self.settings.heartbeat.interval}ms, functions: ${self.settings.heartbeat.functions.length}`);
+		emitDebug(
+			`heartbeat enabled - interval: ${self.settings.heartbeat.interval}ms, functions: ${self.settings.heartbeat.functions.length}`
+		);
 
 		// Start heartbeat if connected
 		if (self._connectState === 1) {
@@ -690,7 +695,7 @@ function StubbornTCP(options = {}) {
 				port,
 				...self.settings.tls.options
 			};
-			client = tls.connect(tlsOptions, handleConnection);
+			client = nodeTls.connect(tlsOptions, handleConnection);
 		} else {
 			// Create regular TCP socket
 			client = new net.Socket();
@@ -784,7 +789,9 @@ function StubbornTCP(options = {}) {
 					self.settings.autoReconnect.isReconnecting = false;
 					if (self._connectState === 0 && self.settings.autoReconnect.enabled) {
 						// Still disconnected and allowed to reconnect
-						emitDebug(`reconnect attempt ${self.settings.autoReconnect.attempts} [${self.settings.connection.host}:${self.settings.connection.port}]`);
+						emitDebug(
+							`reconnect attempt ${self.settings.autoReconnect.attempts} [${self.settings.connection.host}:${self.settings.connection.port}]`
+						);
 						createClient(self.settings.connection.host, self.settings.connection.port);
 					}
 				}, self.settings.autoReconnect.currentDelay);
@@ -899,6 +906,7 @@ function StubbornTCP(options = {}) {
 	 * @param {number} [bufferSizeArg] - Optional buffer size (ignored)
 	 * @returns {object} This TCP instance
 	 */
+	// eslint-disable-next-line no-unused-vars -- `instance` / `bufferSizeArg` are accepted for legacy callers and ignored
 	self.open = (host, port, instance, bufferSizeArg) => {
 		emitDebug(`open(${host}:${port})`);
 
