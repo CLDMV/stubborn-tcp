@@ -1,6 +1,6 @@
 {
 	"name": "@cldmv/stubborn-tcp",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "A stubbornly persistent TCP client that automatically reconnects when connections fail",
 	"type": "module",
 	"main": "./dist/index.cjs",
