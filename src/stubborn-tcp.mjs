@@ -204,8 +204,9 @@ function StubbornTCP(options = {}) {
 			timer: null
 		},
 		connection: {
-			host: null,
-			port: null,
+			// Constructor values are the defaults for open() without arguments.
+			host: host ?? null,
+			port: port ?? null,
 			timeout: connectionTimeout
 		},
 		socket: {
@@ -905,9 +906,22 @@ function StubbornTCP(options = {}) {
 	 * @param {any} [instance] - Optional instance identifier (ignored)
 	 * @param {number} [bufferSizeArg] - Optional buffer size (ignored)
 	 * @returns {object} This TCP instance
+	 * @throws {TypeError} `ERR_MISSING_ARGS` when no port is given and none is configured. Omitted
+	 * `host` / `port` fall back to the last ones used, which start out as the constructor options.
 	 */
 	// eslint-disable-next-line no-unused-vars -- `instance` / `bufferSizeArg` are accepted for legacy callers and ignored
 	self.open = (host, port, instance, bufferSizeArg) => {
+		// Explicit arguments win; otherwise use the last host/port, which starts out as the
+		// constructor's `host` / `port` options.
+		host = host ?? self.settings.connection.host ?? undefined;
+		port = port ?? self.settings.connection.port;
+		if (port === null || port === undefined) {
+			const err = new TypeError(
+				"StubbornTCP.open(): no port to connect to; pass open(host, port) or set the host and port constructor options"
+			);
+			err.code = "ERR_MISSING_ARGS";
+			throw err;
+		}
 		emitDebug(`open(${host}:${port})`);
 
 		// Close existing connection if open
