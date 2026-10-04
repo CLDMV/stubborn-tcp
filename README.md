@@ -113,7 +113,8 @@ new StubbornTCP(options);
 - `keepAlive` _(boolean, default: true)_: Enable TCP keep-alive
 - `keepAliveInitialDelay` _(number, default: 60000)_: Keep-alive initial delay (ms)
 - `noDelay` _(boolean, default: true)_: Disable Nagle's algorithm
-- `connectionTimeout` _(number, default: 10000)_: Connection timeout (ms)
+- `connectionTimeout` _(number, default: 10000)_: Connect-phase timeout (ms). Bounds how long each connection attempt (including the TLS handshake) may take; a timed-out attempt is closed and goes through the normal reconnect path. It is cleared once connected, so it never closes an established connection. `0` or negative disables it
+- `idleTimeout` _(number, default: 0)_: Idle timeout (ms) for an established connection — with no socket activity for this long, the connection is timed out and closed (and reconnected if `autoReconnect` is on). `0` or negative disables it (the default)
 
 #### TLS/SSL Options
 
@@ -154,7 +155,8 @@ new StubbornTCP(options);
 
 - `setKeepAlive(enable, initialDelay)` - Configure TCP keep-alive
 - `setNoDelay(noDelay)` - Configure Nagle's algorithm
-- `setTimeout(timeout)` - Set connection timeout
+- `setTimeout(timeout)` - Set the connect-phase timeout (`connectionTimeout`); re-arms a pending attempt, never affects an established connection
+- `setIdleTimeout(timeout)` - Set the idle timeout (`idleTimeout`); applies to the live connection and later ones
 
 #### Heartbeat Methods
 
@@ -315,7 +317,7 @@ client.on("connect", () => {
 	// Optimize socket after connection
 	client.setKeepAlive(true, 30000);
 	client.setNoDelay(true);
-	client.setTimeout(60000);
+	client.setIdleTimeout(60000);
 
 	console.log("Socket optimized for performance");
 });

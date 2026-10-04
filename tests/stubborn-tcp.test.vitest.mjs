@@ -337,7 +337,7 @@ describe("callbacks", () => {
 		const c = client({
 			autoReconnect: false,
 			debug: true,
-			connectionTimeout: 80,
+			idleTimeout: 80,
 			rxFunc: boom,
 			onConnect: boom,
 			onDisconnect: boom,

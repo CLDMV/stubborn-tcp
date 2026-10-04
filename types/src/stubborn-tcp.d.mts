@@ -26,7 +26,7 @@
  * @param {function} [options.onConnect] - Function to call when connection is established
  * @param {function} [options.onDisconnect] - Function to call when connection is closed
  * @param {function} [options.onError] - Function to call when an error occurs
- * @param {function} [options.onTimeout] - Function to call when connection timeout occurs
+ * @param {function} [options.onTimeout] - Function to call when a connect-phase or idle timeout occurs
  * @param {function|function[]} [options.heartbeatFunc] - Function(s) to call for heartbeat
  * @param {number} [options.heartbeatInterval=30000] - Heartbeat interval in milliseconds
  * @param {boolean} [options.heartbeatResetOnActivity=true] - Reset heartbeat timer on activity
@@ -44,7 +44,8 @@
  * @param {boolean} [options.keepAlive=true] - Enable TCP keep-alive
  * @param {number} [options.keepAliveInitialDelay=60000] - Initial delay for keep-alive probes in milliseconds
  * @param {boolean} [options.noDelay=true] - Disable Nagle's algorithm for low-latency
- * @param {number} [options.connectionTimeout=10000] - Connection timeout in milliseconds (0 or negative to disable)
+ * @param {number} [options.connectionTimeout=10000] - Connect-phase timeout in milliseconds (0 or negative to disable). Armed when a connection attempt starts and cleared once it connects (after the TLS handshake for TLS), so it never times out an established connection
+ * @param {number} [options.idleTimeout=0] - Idle timeout in milliseconds for an established connection (0 or negative to disable, the default). When set, a connection with no socket activity for this long is timed out and closed
  * @param {boolean} [options.tls=false] - Enable TLS/SSL encryption
  * @param {object} [options.tlsOptions={}] - TLS/SSL configuration options
  *
@@ -160,6 +161,7 @@ declare function StubbornTCP(options?: {
     keepAliveInitialDelay?: number;
     noDelay?: boolean;
     connectionTimeout?: number;
+    idleTimeout?: number;
     tls?: boolean;
     tlsOptions?: object;
 }): any;

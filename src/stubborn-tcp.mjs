@@ -31,7 +31,7 @@ import { EventEmitter } from "events";
  * @param {function} [options.onConnect] - Function to call when connection is established
  * @param {function} [options.onDisconnect] - Function to call when connection is closed
  * @param {function} [options.onError] - Function to call when an error occurs
- * @param {function} [options.onTimeout] - Function to call when connection timeout occurs
+ * @param {function} [options.onTimeout] - Function to call when a connect-phase or idle timeout occurs
  * @param {function|function[]} [options.heartbeatFunc] - Function(s) to call for heartbeat
  * @param {number} [options.heartbeatInterval=30000] - Heartbeat interval in milliseconds
  * @param {boolean} [options.heartbeatResetOnActivity=true] - Reset heartbeat timer on activity
@@ -49,7 +49,8 @@ import { EventEmitter } from "events";
  * @param {boolean} [options.keepAlive=true] - Enable TCP keep-alive
  * @param {number} [options.keepAliveInitialDelay=60000] - Initial delay for keep-alive probes in milliseconds
  * @param {boolean} [options.noDelay=true] - Disable Nagle's algorithm for low-latency
- * @param {number} [options.connectionTimeout=10000] - Connection timeout in milliseconds (0 or negative to disable)
+ * @param {number} [options.connectionTimeout=10000] - Connect-phase timeout in milliseconds (0 or negative to disable). Armed when a connection attempt starts and cleared once it connects (after the TLS handshake for TLS), so it never times out an established connection
+ * @param {number} [options.idleTimeout=0] - Idle timeout in milliseconds for an established connection (0 or negative to disable, the default). When set, a connection with no socket activity for this long is timed out and closed
  * @param {boolean} [options.tls=false] - Enable TLS/SSL encryption
  * @param {object} [options.tlsOptions={}] - TLS/SSL configuration options
  *
@@ -179,6 +180,7 @@ function StubbornTCP(options = {}) {
 		keepAliveInitialDelay = 60000,
 		noDelay = true,
 		connectionTimeout = 10000,
+		idleTimeout = 0,
 		// TLS/SSL options
 		tls = false,
 		tlsOptions = {}
@@ -208,7 +210,8 @@ function StubbornTCP(options = {}) {
 			// Constructor values are the defaults for open() without arguments.
 			host: host ?? null,
 			port: port ?? null,
-			timeout: connectionTimeout
+			timeout: connectionTimeout,
+			idleTimeout
 		},
 		socket: {
 			keepAlive,
@@ -572,21 +575,32 @@ function StubbornTCP(options = {}) {
 	};
 
 	/**
-	 * Set connection timeout
-	 * @param {number} timeout - Timeout in milliseconds (0 to disable)
+	 * Set the connect-phase timeout (`connectionTimeout`). It bounds how long a connection
+	 * attempt may take and never applies to an established connection: on a pending attempt
+	 * the timer is re-armed, otherwise the value is recorded for the next attempt.
+	 * @param {number} timeout - Timeout in milliseconds (0 or negative to disable)
 	 */
 	self.setTimeout = (timeout) => {
 		self.settings.connection.timeout = timeout;
 
-		// Apply to existing connection if available
+		// Re-arm on an attempt that is still connecting; an established connection is unaffected
+		if (client && self._connectState === 0 && !client.destroyed) {
+			client.setTimeout(timeout > 0 ? timeout : 0);
+			emitDebug(timeout > 0 ? `connect timeout set to ${timeout}ms` : "connect timeout disabled");
+		}
+	};
+
+	/**
+	 * Set the idle timeout (`idleTimeout`) for an established connection. Applied to the live
+	 * connection if there is one, and to every connection established afterwards.
+	 * @param {number} timeout - Timeout in milliseconds (0 or negative to disable)
+	 */
+	self.setIdleTimeout = (timeout) => {
+		self.settings.connection.idleTimeout = timeout;
+
 		if (client && self._connectState === 1) {
-			if (timeout > 0) {
-				client.setTimeout(timeout);
-				emitDebug(`timeout set to ${timeout}ms`);
-			} else {
-				client.setTimeout(0); // Disable timeout
-				emitDebug("timeout disabled");
-			}
+			client.setTimeout(timeout > 0 ? timeout : 0);
+			emitDebug(timeout > 0 ? `idle timeout set to ${timeout}ms` : "idle timeout disabled");
 		}
 	};
 
@@ -681,6 +695,10 @@ function StubbornTCP(options = {}) {
 				client.setNoDelay(true);
 			}
 
+			// The connect phase is over: swap the connect-phase timeout for the (opt-in) idle timeout
+			const idle = self.settings.connection.idleTimeout;
+			client.setTimeout(idle > 0 ? idle : 0);
+
 			self._connectState = 1;
 			self.settings.autoReconnect.isReconnecting = false;
 
@@ -727,35 +745,35 @@ function StubbornTCP(options = {}) {
 		// still closing; its late events must then leave the client's state alone.
 		const socket = client;
 
-		// Set connection timeout for both TCP and TLS
-		if (self.settings.connection.timeout > 0) {
-			client.setTimeout(self.settings.connection.timeout);
-			client.on("timeout", () => {
-				emitDebug("connection timeout");
+		// Arm the connect-phase timeout for both TCP and TLS. handleConnection() clears it (or
+		// replaces it with the idle timeout) once connected, so it never fires on an open connection.
+		const connectTimeout = self.settings.connection.timeout;
+		client.setTimeout(connectTimeout > 0 ? connectTimeout : 0);
+		client.on("timeout", () => {
+			emitDebug(self._connectState === 1 ? "idle timeout" : "connection timeout");
 
-				// A timeout before the connection is up is a failed attempt; the socket is
-				// destroyed below without an error, so report the failure here.
-				if (!attemptConnected) {
-					const timeoutError = new Error(`connection to ${host}:${port} timed out after ${self.settings.connection.timeout}ms`);
-					timeoutError.code = "ETIMEDOUT";
-					reportConnectFailure(timeoutError);
+			// A timeout before the connection is up is a failed attempt; the socket is
+			// destroyed below without an error, so report the failure here.
+			if (!attemptConnected) {
+				const timeoutError = new Error(`connection to ${host}:${port} timed out after ${self.settings.connection.timeout}ms`);
+				timeoutError.code = "ETIMEDOUT";
+				reportConnectFailure(timeoutError);
+			}
+
+			// Emit timeout event
+			self.emit("timeout", self.handle, self);
+
+			// Call timeout callback (legacy support)
+			if (typeof self.functions.onTimeout === "function") {
+				try {
+					self.functions.onTimeout(self.handle, self);
+				} catch (e) {
+					emitDebug(`Error in onTimeout callback: ${e.message}`);
 				}
+			}
 
-				// Emit timeout event
-				self.emit("timeout", self.handle, self);
-
-				// Call timeout callback (legacy support)
-				if (typeof self.functions.onTimeout === "function") {
-					try {
-						self.functions.onTimeout(self.handle, self);
-					} catch (e) {
-						emitDebug(`Error in onTimeout callback: ${e.message}`);
-					}
-				}
-
-				client.destroy();
-			});
-		}
+			client.destroy();
+		});
 
 		client.on("data", (data) => {
 			// Reset heartbeat timer on received data

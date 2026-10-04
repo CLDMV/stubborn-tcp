@@ -143,13 +143,13 @@ describe("integration", () => {
 		expect(client.remotePort).toBe(server.port);
 	});
 
-	it("emits timeout when the connection stays idle past connectionTimeout", async () => {
+	it("emits timeout when the connection stays idle past idleTimeout", async () => {
 		const server = track(await startSilentServer());
 		let timeouts = 0;
 		let disconnected = false;
 		const client = track(
 			new StubbornTCP({
-				connectionTimeout: 100,
+				idleTimeout: 100,
 				autoReconnect: false,
 				onTimeout: () => timeouts++
 			})
