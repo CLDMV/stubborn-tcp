@@ -18,6 +18,7 @@ It is built for long-lived connections to devices and services — control proto
 
 - **TLS connections work** — the `tls` option shadowed Node.js's `tls` module inside the constructor, so every TLS connection attempt threw `tls.connect is not a function`. `tls: true` now connects over TLS, and `secureConnect` and the TLS helper methods work as documented (#1).
 - **Built package with TypeScript declarations** — the code now ships as a minified `dist/` bundle with `.d.mts` declarations; `test/` and `examples/` are no longer published. The package root exports are unchanged, and `require()` (Node.js ^20.19.0 or >=22.12.0) now works in esbuild/webpack bundles and fails with a clear `ERR_REQUIRE_ESM` message on older Node.js (#1).
+- **Connection fixes** — an unobserved socket error no longer crashes the process, `failToConnect` now fires for each failed attempt, `open()` on a connected client keeps it usable, `open()` without arguments uses the constructor's host and port, and `connectionTimeout` no longer drops idle connections (a new opt-in `idleTimeout` covers that) ([#9](https://github.com/CLDMV/stubborn-tcp/pull/9), [#10](https://github.com/CLDMV/stubborn-tcp/pull/10), [#11](https://github.com/CLDMV/stubborn-tcp/pull/11), [#13](https://github.com/CLDMV/stubborn-tcp/pull/13)).
 - [View full v1.0.4 Changelog](https://github.com/CLDMV/stubborn-tcp/blob/master/docs/changelog/v1/v1.0.4.md)
 
 ### Recent Releases
