@@ -56,7 +56,8 @@ import { EventEmitter } from "events";
  * @fires StubbornTCP#connect - Emitted when connection is established (handle, instance)
  * @fires StubbornTCP#data - Emitted when data is received (data, handle, instance)
  * @fires StubbornTCP#disconnect - Emitted when connection is closed (handle, instance)
- * @fires StubbornTCP#error - Emitted when an error occurs (error, handle, instance)
+ * @fires StubbornTCP#error - Emitted when an error occurs (error, handle, instance); only emitted while an `error` listener is attached
+ * @fires StubbornTCP#failToConnect - Emitted once per connection attempt (first or reconnect) that fails before `connect` (error, handle, instance)
  * @fires StubbornTCP#maxReconnectAttemptsReached - Emitted when max reconnect attempts reached (attempts)
  * @fires StubbornTCP#heartbeat - Emitted when heartbeat is sent (handle, instance)
  * @fires StubbornTCP#heartbeatFailed - Emitted when heartbeat function fails (error, functionIndex, handle, instance)
@@ -649,8 +650,27 @@ function StubbornTCP(options = {}) {
 		self.settings.connection.port = port;
 		self._openState = 1;
 
+		// Per-attempt state: whether this socket ever connected, and whether its failure has
+		// already been reported (a refused socket emits "error" once, but a timed-out one
+		// reaches us through "timeout" instead, so both paths share reportConnectFailure()).
+		let attemptConnected = false;
+		let attemptFailureReported = false;
+
+		/**
+		 * Emit `failToConnect` once for this attempt, if it fails before `connect`.
+		 * @param {Error} err - Why the attempt failed.
+		 */
+		const reportConnectFailure = (err) => {
+			if (attemptConnected || attemptFailureReported) return;
+			attemptFailureReported = true;
+			emitDebug(`connection attempt to ${host}:${port} failed: ${err.message}`);
+			self.emit("failToConnect", err, self.handle, self);
+		};
+
 		// Configure socket options after connection
 		const handleConnection = () => {
+			attemptConnected = true;
+
 			// Configure socket options
 			if (self.settings.socket.keepAlive) {
 				client.setKeepAlive(true, self.settings.socket.keepAliveInitialDelay);
@@ -707,6 +727,14 @@ function StubbornTCP(options = {}) {
 			client.setTimeout(self.settings.connection.timeout);
 			client.on("timeout", () => {
 				emitDebug("connection timeout");
+
+				// A timeout before the connection is up is a failed attempt; the socket is
+				// destroyed below without an error, so report the failure here.
+				if (!attemptConnected) {
+					const timeoutError = new Error(`connection to ${host}:${port} timed out after ${self.settings.connection.timeout}ms`);
+					timeoutError.code = "ETIMEDOUT";
+					reportConnectFailure(timeoutError);
+				}
 
 				// Emit timeout event
 				self.emit("timeout", self.handle, self);
@@ -807,8 +835,16 @@ function StubbornTCP(options = {}) {
 		client.on("error", (err) => {
 			emitDebug(`connection error: ${err.message}`);
 
-			// Emit error event
-			self.emit("error", err, self.handle, self);
+			reportConnectFailure(err);
+
+			// Emit error event only when someone listens: EventEmitter throws on an unhandled
+			// "error", and the close/reconnect logic already handles the failure, so an
+			// unobserved socket error must not crash the process.
+			if (self.listenerCount("error") > 0) {
+				self.emit("error", err, self.handle, self);
+			} else {
+				emitDebug("no error listener attached; error reported via debug only");
+			}
 
 			// Call error callback (legacy support)
 			if (typeof self.functions.onError === "function") {

@@ -51,7 +51,8 @@
  * @fires StubbornTCP#connect - Emitted when connection is established (handle, instance)
  * @fires StubbornTCP#data - Emitted when data is received (data, handle, instance)
  * @fires StubbornTCP#disconnect - Emitted when connection is closed (handle, instance)
- * @fires StubbornTCP#error - Emitted when an error occurs (error, handle, instance)
+ * @fires StubbornTCP#error - Emitted when an error occurs (error, handle, instance); only emitted while an `error` listener is attached
+ * @fires StubbornTCP#failToConnect - Emitted once per connection attempt (first or reconnect) that fails before `connect` (error, handle, instance)
  * @fires StubbornTCP#maxReconnectAttemptsReached - Emitted when max reconnect attempts reached (attempts)
  * @fires StubbornTCP#heartbeat - Emitted when heartbeat is sent (handle, instance)
  * @fires StubbornTCP#heartbeatFailed - Emitted when heartbeat function fails (error, functionIndex, handle, instance)
