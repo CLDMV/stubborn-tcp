@@ -104,8 +104,8 @@ new StubbornTCP(options);
 
 #### Connection Options
 
-- `host` _(string)_: Host to connect to
-- `port` _(number)_: Port to connect to
+- `host` _(string)_: Host to connect to (also the default for `open()` called without arguments)
+- `port` _(number)_: Port to connect to (also the default for `open()` called without arguments). With both `host` and `port` set, the client connects immediately
 - `debug` _(boolean, default: false)_: Enable debug logging
 
 #### Socket Options

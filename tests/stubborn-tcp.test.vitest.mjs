@@ -150,9 +150,12 @@ describe("construction", () => {
 		expect(c.settings.connection).toMatchObject({ host: "127.0.0.1", port: s.port });
 	});
 
-	it("does not auto-connect with only one of host/port", () => {
+	it("does not auto-connect with only one of host/port, but records it for open()", async () => {
 		const c = client({ host: "127.0.0.1" });
-		expect(c.settings.connection.host).toBeNull();
+		expect(c.settings.connection).toMatchObject({ host: "127.0.0.1", port: null });
+		await delay(20);
+		expect(c.connectState).toBe(0);
+		expect(c.remoteAddress).toBeNull();
 	});
 });
 
