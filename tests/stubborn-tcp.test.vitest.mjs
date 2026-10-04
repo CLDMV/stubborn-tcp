@@ -500,24 +500,84 @@ describe("heartbeat", () => {
 });
 
 describe("open / close / reconnect", () => {
-	it("open() on a connected client closes the old connection and connects again", async () => {
-		// Known pre-existing bug pinned here: the replaced socket keeps its listeners, so its
-		// late "close" event lands AFTER the new socket connected and resets connectState to 0
-		// (write() then returns false although the new socket is up). close() also leaves
-		// autoReconnect disabled for the new connection. When fixed, update this test.
+	it("open() on a connected client replaces the connection and stays usable (#5)", async () => {
 		const s = await server();
-		const c = client({ autoReconnect: false });
+		const c = client({ reconnectDelay: 10, heartbeatEnabled: true, heartbeatInterval: 60000 });
 		await connect(c, s.port);
 		const events = [];
 		c.on("connect", () => events.push("connect"));
 		c.on("disconnect", () => events.push("disconnect"));
 		expect(c.open("127.0.0.1", s.port)).toBe(c);
-		await waitFor(() => events.length === 2);
-		expect(events).toEqual(["connect", "disconnect"]);
+		await waitFor(() => events.length === 1);
+		// Give the replaced socket's late close event time to land.
+		await delay(60);
+		expect(events).toEqual(["connect"]);
 		expect(s.connectionCount()).toBe(2);
-		expect(c.connectState).toBe(0);
-		expect(c.write("x")).toBe(false);
-		expect(c.settings.autoReconnect.enabled).toBe(false);
+		expect(c.connectState).toBe(1);
+		expect(c.settings.autoReconnect.enabled).toBe(true);
+		expect(c.settings.autoReconnect.timer).toBeNull();
+		expect(c.settings.heartbeat.enabled).toBe(true);
+		expect(c.settings.heartbeat.timer).not.toBeNull();
+		s.messages.length = 0;
+		expect(c.write("x")).toBe(true);
+		await waitFor(() => s.messages.includes("x"));
+
+		// Auto-reconnect still works for the new connection.
+		s.dropClients();
+		await waitFor(() => events.length === 3);
+		expect(events).toEqual(["connect", "disconnect", "connect"]);
+		expect(s.connectionCount()).toBe(3);
+	});
+
+	it("open() during a pending reconnect cancels it and connects once", async () => {
+		const port = await closedPort();
+		const s = await server();
+		const c = client({ reconnectDelay: 40 });
+		c.on("error", () => {});
+		c.open("127.0.0.1", port);
+		await waitFor(() => c.settings.autoReconnect.timer !== null);
+		let connects = 0;
+		c.on("connect", () => connects++);
+		c.open("127.0.0.1", s.port);
+		expect(c.settings.autoReconnect.timer).toBeNull();
+		await waitFor(() => connects === 1);
+		await delay(100);
+		expect(connects).toBe(1);
+		expect(c.connectState).toBe(1);
+		expect(c.settings.connection.port).toBe(s.port);
+		expect(s.connectionCount()).toBe(1);
+	});
+
+	it("open() while still connecting ignores the abandoned socket", async () => {
+		const s = await server();
+		const c = client({ reconnectDelay: 10, debug: true });
+		const messages = [];
+		c.on("debug", (m) => messages.push(m.slice(c.lCPrefix.length)));
+		const events = [];
+		c.on("connect", () => events.push("connect"));
+		c.on("disconnect", () => events.push("disconnect"));
+		c.open("127.0.0.1", s.port);
+		c.open("127.0.0.1", s.port);
+		await waitFor(() => events.length === 1);
+		await delay(60);
+		expect(events).toEqual(["connect"]);
+		expect(c.connectState).toBe(1);
+		expect(messages).toContain("ignoring close from a replaced socket");
+	});
+
+	it("close() followed by open() keeps the new connection connected", async () => {
+		const s = await server();
+		const c = client({ autoReconnect: false });
+		await connect(c, s.port);
+		const events = [];
+		c.on("disconnect", () => events.push("disconnect"));
+		c.close();
+		await connect(c, s.port);
+		await delay(60);
+		expect(c.connectState).toBe(1);
+		expect(c.write("y")).toBe(true);
+		// The disconnect of the connection close() ended is still reported, at most once.
+		expect(events.length).toBeLessThanOrEqual(1);
 	});
 
 	it("close() disables auto-reconnect, clears timers and resets reconnect state", async () => {
