@@ -165,9 +165,11 @@ describe("failToConnect (#4)", () => {
 		expect(failures).toBe(0);
 	});
 
-	it("is not emitted when the timeout fires on an established, idle connection", async () => {
+	it("is not emitted when the idle timeout fires on an established connection", async () => {
+		// connectionTimeout only covers connecting (#12); an established connection is timed out
+		// by the opt-in idleTimeout, and that is not a failed connection attempt.
 		const s = await server(startSilentServer);
-		const c = client({ autoReconnect: false, connectionTimeout: 80 });
+		const c = client({ autoReconnect: false, idleTimeout: 80 });
 		let failures = 0;
 		let disconnected = false;
 		c.on("failToConnect", () => failures++);
