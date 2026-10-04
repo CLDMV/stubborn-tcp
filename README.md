@@ -197,7 +197,8 @@ new StubbornTCP(options);
 - `connect` - Connection established
 - `disconnect` - Connection lost
 - `data` - Data received
-- `error` - Error occurred
+- `error` - Error occurred (only emitted while an `error` listener is attached; without one, errors go to the `debug` event and the client keeps reconnecting instead of crashing the process)
+- `failToConnect` `(error, handle, instance)` - A connection attempt (the first one or a reconnect) failed before `connect`; fires once per failed attempt, before `error`. A timeout before connecting reports an `ETIMEDOUT` error
 
 #### Reconnection Events
 
