@@ -702,6 +702,10 @@ function StubbornTCP(options = {}) {
 			client.connect(port, host, handleConnection);
 		}
 
+		// The socket this attempt owns. open() may replace it with a newer one while it is
+		// still closing; its late events must then leave the client's state alone.
+		const socket = client;
+
 		// Set connection timeout for both TCP and TLS
 		if (self.settings.connection.timeout > 0) {
 			client.setTimeout(self.settings.connection.timeout);
@@ -741,6 +745,14 @@ function StubbornTCP(options = {}) {
 			}
 		});
 		client.on("close", () => {
+			// A replaced socket closing after open() started a new one: ignore it, or it would
+			// mark the new connection disconnected, emit a spurious disconnect and reconnect.
+			// (After close() there is no current socket, so the disconnect is still reported.)
+			if (client !== null && client !== socket) {
+				emitDebug("ignoring close from a replaced socket");
+				return;
+			}
+
 			self._connectState = 0;
 
 			// Stop heartbeat on disconnect
@@ -899,7 +911,9 @@ function StubbornTCP(options = {}) {
 	self.Close = self.close; // Legacy support
 
 	/**
-	 * Open a TCP connection to the specified host and port
+	 * Open a TCP connection to the specified host and port. Calling it on a connected (or
+	 * reconnecting) client replaces that connection without a `disconnect` event and keeps
+	 * the auto-reconnect and heartbeat settings.
 	 * @param {string} host - Host to connect to
 	 * @param {number} port - Port to connect to
 	 * @param {any} [instance] - Optional instance identifier (ignored)
@@ -910,8 +924,19 @@ function StubbornTCP(options = {}) {
 	self.open = (host, port, instance, bufferSizeArg) => {
 		emitDebug(`open(${host}:${port})`);
 
-		// Close existing connection if open
-		if (self._connectState === 1) self.close();
+		// Replace any existing connection or pending reconnect. Unlike close(), this keeps
+		// auto-reconnect and the heartbeat configuration as they are: createClient() destroys
+		// the old socket, whose late close event is then ignored.
+		if (self.settings.autoReconnect.timer) {
+			clearTimeout(self.settings.autoReconnect.timer);
+			self.settings.autoReconnect.timer = null;
+		}
+		self.settings.autoReconnect.isReconnecting = false;
+		if (self.settings.heartbeat.timer) {
+			clearTimeout(self.settings.heartbeat.timer);
+			self.settings.heartbeat.timer = null;
+		}
+		self._connectState = 0;
 		return createClient(host, port);
 	};
 	self.Open = self.open; // Legacy support
