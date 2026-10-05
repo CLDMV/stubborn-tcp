@@ -1,18 +1,20 @@
 /**
+ *
  *	@Project: @cldmv/stubborn-tcp
- *	@Filename: /stubborn-tcp.mjs
- *	@Date: 2025-10-06 17:04:41 -07:00 (1759795481)
- *	@Author: Nate Hyson <CLDMV>
+ *	@Filename: /src/stubborn-tcp.mjs
+ *	@Date: 2025-10-06T17:04:41-07:00 (1759795481)
+ *	@Author: Nate Corcoran <CLDMV>
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
- *	@Last modified by: Nate Hyson <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2025-10-10 17:34:01 -07:00 (1760142841)
+ *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
+ *	@Last modified time: 2026-10-03T11:39:09-07:00 (1791052749)
  *	-----
- *	@Copyright: Copyright (c) 2013-2025 Catalyzed Motivation Inc. All rights reserved.
+ *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+ *
  */
 
 import net from "net";
-import tls from "tls";
+import nodeTls from "tls";
 import { EventEmitter } from "events";
 
 /**
@@ -29,7 +31,7 @@ import { EventEmitter } from "events";
  * @param {function} [options.onConnect] - Function to call when connection is established
  * @param {function} [options.onDisconnect] - Function to call when connection is closed
  * @param {function} [options.onError] - Function to call when an error occurs
- * @param {function} [options.onTimeout] - Function to call when connection timeout occurs
+ * @param {function} [options.onTimeout] - Function to call when a connect-phase or idle timeout occurs
  * @param {function|function[]} [options.heartbeatFunc] - Function(s) to call for heartbeat
  * @param {number} [options.heartbeatInterval=30000] - Heartbeat interval in milliseconds
  * @param {boolean} [options.heartbeatResetOnActivity=true] - Reset heartbeat timer on activity
@@ -47,14 +49,16 @@ import { EventEmitter } from "events";
  * @param {boolean} [options.keepAlive=true] - Enable TCP keep-alive
  * @param {number} [options.keepAliveInitialDelay=60000] - Initial delay for keep-alive probes in milliseconds
  * @param {boolean} [options.noDelay=true] - Disable Nagle's algorithm for low-latency
- * @param {number} [options.connectionTimeout=10000] - Connection timeout in milliseconds (0 or negative to disable)
+ * @param {number} [options.connectionTimeout=10000] - Connect-phase timeout in milliseconds (0 or negative to disable). Armed when a connection attempt starts and cleared once it connects (after the TLS handshake for TLS), so it never times out an established connection
+ * @param {number} [options.idleTimeout=0] - Idle timeout in milliseconds for an established connection (0 or negative to disable, the default). When set, a connection with no socket activity for this long is timed out and closed
  * @param {boolean} [options.tls=false] - Enable TLS/SSL encryption
  * @param {object} [options.tlsOptions={}] - TLS/SSL configuration options
  *
  * @fires StubbornTCP#connect - Emitted when connection is established (handle, instance)
  * @fires StubbornTCP#data - Emitted when data is received (data, handle, instance)
  * @fires StubbornTCP#disconnect - Emitted when connection is closed (handle, instance)
- * @fires StubbornTCP#error - Emitted when an error occurs (error, handle, instance)
+ * @fires StubbornTCP#error - Emitted when an error occurs (error, handle, instance); only emitted while an `error` listener is attached
+ * @fires StubbornTCP#failToConnect - Emitted once per connection attempt (first or reconnect) that fails before `connect` (error, handle, instance)
  * @fires StubbornTCP#maxReconnectAttemptsReached - Emitted when max reconnect attempts reached (attempts)
  * @fires StubbornTCP#heartbeat - Emitted when heartbeat is sent (handle, instance)
  * @fires StubbornTCP#heartbeatFailed - Emitted when heartbeat function fails (error, functionIndex, handle, instance)
@@ -176,6 +180,7 @@ function StubbornTCP(options = {}) {
 		keepAliveInitialDelay = 60000,
 		noDelay = true,
 		connectionTimeout = 10000,
+		idleTimeout = 0,
 		// TLS/SSL options
 		tls = false,
 		tlsOptions = {}
@@ -202,9 +207,11 @@ function StubbornTCP(options = {}) {
 			timer: null
 		},
 		connection: {
-			host: null,
-			port: null,
-			timeout: connectionTimeout
+			// Constructor values are the defaults for open() without arguments.
+			host: host ?? null,
+			port: port ?? null,
+			timeout: connectionTimeout,
+			idleTimeout
 		},
 		socket: {
 			keepAlive,
@@ -376,6 +383,7 @@ function StubbornTCP(options = {}) {
 	 * Set delay between transmitted messages (not implemented)
 	 * @param {number} ms - Milliseconds to delay
 	 */
+	// eslint-disable-next-line no-unused-vars -- documented legacy signature; the method is a no-op
 	self.setTxInterMsgDelay = (ms) => {
 		emitDebug("setTxInterMsgDelay() called - not implemented");
 	};
@@ -487,7 +495,9 @@ function StubbornTCP(options = {}) {
 
 		self.settings.heartbeat.enabled = true;
 
-		emitDebug(`heartbeat enabled - interval: ${self.settings.heartbeat.interval}ms, functions: ${self.settings.heartbeat.functions.length}`);
+		emitDebug(
+			`heartbeat enabled - interval: ${self.settings.heartbeat.interval}ms, functions: ${self.settings.heartbeat.functions.length}`
+		);
 
 		// Start heartbeat if connected
 		if (self._connectState === 1) {
@@ -565,21 +575,32 @@ function StubbornTCP(options = {}) {
 	};
 
 	/**
-	 * Set connection timeout
-	 * @param {number} timeout - Timeout in milliseconds (0 to disable)
+	 * Set the connect-phase timeout (`connectionTimeout`). It bounds how long a connection
+	 * attempt may take and never applies to an established connection: on a pending attempt
+	 * the timer is re-armed, otherwise the value is recorded for the next attempt.
+	 * @param {number} timeout - Timeout in milliseconds (0 or negative to disable)
 	 */
 	self.setTimeout = (timeout) => {
 		self.settings.connection.timeout = timeout;
 
-		// Apply to existing connection if available
+		// Re-arm on an attempt that is still connecting; an established connection is unaffected
+		if (client && self._connectState === 0 && !client.destroyed) {
+			client.setTimeout(timeout > 0 ? timeout : 0);
+			emitDebug(timeout > 0 ? `connect timeout set to ${timeout}ms` : "connect timeout disabled");
+		}
+	};
+
+	/**
+	 * Set the idle timeout (`idleTimeout`) for an established connection. Applied to the live
+	 * connection if there is one, and to every connection established afterwards.
+	 * @param {number} timeout - Timeout in milliseconds (0 or negative to disable)
+	 */
+	self.setIdleTimeout = (timeout) => {
+		self.settings.connection.idleTimeout = timeout;
+
 		if (client && self._connectState === 1) {
-			if (timeout > 0) {
-				client.setTimeout(timeout);
-				emitDebug(`timeout set to ${timeout}ms`);
-			} else {
-				client.setTimeout(0); // Disable timeout
-				emitDebug("timeout disabled");
-			}
+			client.setTimeout(timeout > 0 ? timeout : 0);
+			emitDebug(timeout > 0 ? `idle timeout set to ${timeout}ms` : "idle timeout disabled");
 		}
 	};
 
@@ -644,8 +665,27 @@ function StubbornTCP(options = {}) {
 		self.settings.connection.port = port;
 		self._openState = 1;
 
+		// Per-attempt state: whether this socket ever connected, and whether its failure has
+		// already been reported (a refused socket emits "error" once, but a timed-out one
+		// reaches us through "timeout" instead, so both paths share reportConnectFailure()).
+		let attemptConnected = false;
+		let attemptFailureReported = false;
+
+		/**
+		 * Emit `failToConnect` once for this attempt, if it fails before `connect`.
+		 * @param {Error} err - Why the attempt failed.
+		 */
+		const reportConnectFailure = (err) => {
+			if (attemptConnected || attemptFailureReported) return;
+			attemptFailureReported = true;
+			emitDebug(`connection attempt to ${host}:${port} failed: ${err.message}`);
+			self.emit("failToConnect", err, self.handle, self);
+		};
+
 		// Configure socket options after connection
 		const handleConnection = () => {
+			attemptConnected = true;
+
 			// Configure socket options
 			if (self.settings.socket.keepAlive) {
 				client.setKeepAlive(true, self.settings.socket.keepAliveInitialDelay);
@@ -654,6 +694,10 @@ function StubbornTCP(options = {}) {
 			if (self.settings.socket.noDelay) {
 				client.setNoDelay(true);
 			}
+
+			// The connect phase is over: swap the connect-phase timeout for the (opt-in) idle timeout
+			const idle = self.settings.connection.idleTimeout;
+			client.setTimeout(idle > 0 ? idle : 0);
 
 			self._connectState = 1;
 			self.settings.autoReconnect.isReconnecting = false;
@@ -690,34 +734,46 @@ function StubbornTCP(options = {}) {
 				port,
 				...self.settings.tls.options
 			};
-			client = tls.connect(tlsOptions, handleConnection);
+			client = nodeTls.connect(tlsOptions, handleConnection);
 		} else {
 			// Create regular TCP socket
 			client = new net.Socket();
 			client.connect(port, host, handleConnection);
 		}
 
-		// Set connection timeout for both TCP and TLS
-		if (self.settings.connection.timeout > 0) {
-			client.setTimeout(self.settings.connection.timeout);
-			client.on("timeout", () => {
-				emitDebug("connection timeout");
+		// The socket this attempt owns. open() may replace it with a newer one while it is
+		// still closing; its late events must then leave the client's state alone.
+		const socket = client;
 
-				// Emit timeout event
-				self.emit("timeout", self.handle, self);
+		// Arm the connect-phase timeout for both TCP and TLS. handleConnection() clears it (or
+		// replaces it with the idle timeout) once connected, so it never fires on an open connection.
+		const connectTimeout = self.settings.connection.timeout;
+		client.setTimeout(connectTimeout > 0 ? connectTimeout : 0);
+		client.on("timeout", () => {
+			emitDebug(self._connectState === 1 ? "idle timeout" : "connection timeout");
 
-				// Call timeout callback (legacy support)
-				if (typeof self.functions.onTimeout === "function") {
-					try {
-						self.functions.onTimeout(self.handle, self);
-					} catch (e) {
-						emitDebug(`Error in onTimeout callback: ${e.message}`);
-					}
+			// A timeout before the connection is up is a failed attempt; the socket is
+			// destroyed below without an error, so report the failure here.
+			if (!attemptConnected) {
+				const timeoutError = new Error(`connection to ${host}:${port} timed out after ${self.settings.connection.timeout}ms`);
+				timeoutError.code = "ETIMEDOUT";
+				reportConnectFailure(timeoutError);
+			}
+
+			// Emit timeout event
+			self.emit("timeout", self.handle, self);
+
+			// Call timeout callback (legacy support)
+			if (typeof self.functions.onTimeout === "function") {
+				try {
+					self.functions.onTimeout(self.handle, self);
+				} catch (e) {
+					emitDebug(`Error in onTimeout callback: ${e.message}`);
 				}
+			}
 
-				client.destroy();
-			});
-		}
+			client.destroy();
+		});
 
 		client.on("data", (data) => {
 			// Reset heartbeat timer on received data
@@ -736,6 +792,14 @@ function StubbornTCP(options = {}) {
 			}
 		});
 		client.on("close", () => {
+			// A replaced socket closing after open() started a new one: ignore it, or it would
+			// mark the new connection disconnected, emit a spurious disconnect and reconnect.
+			// (After close() there is no current socket, so the disconnect is still reported.)
+			if (client !== null && client !== socket) {
+				emitDebug("ignoring close from a replaced socket");
+				return;
+			}
+
 			self._connectState = 0;
 
 			// Stop heartbeat on disconnect
@@ -784,7 +848,9 @@ function StubbornTCP(options = {}) {
 					self.settings.autoReconnect.isReconnecting = false;
 					if (self._connectState === 0 && self.settings.autoReconnect.enabled) {
 						// Still disconnected and allowed to reconnect
-						emitDebug(`reconnect attempt ${self.settings.autoReconnect.attempts} [${self.settings.connection.host}:${self.settings.connection.port}]`);
+						emitDebug(
+							`reconnect attempt ${self.settings.autoReconnect.attempts} [${self.settings.connection.host}:${self.settings.connection.port}]`
+						);
 						createClient(self.settings.connection.host, self.settings.connection.port);
 					}
 				}, self.settings.autoReconnect.currentDelay);
@@ -800,8 +866,16 @@ function StubbornTCP(options = {}) {
 		client.on("error", (err) => {
 			emitDebug(`connection error: ${err.message}`);
 
-			// Emit error event
-			self.emit("error", err, self.handle, self);
+			reportConnectFailure(err);
+
+			// Emit error event only when someone listens: EventEmitter throws on an unhandled
+			// "error", and the close/reconnect logic already handles the failure, so an
+			// unobserved socket error must not crash the process.
+			if (self.listenerCount("error") > 0) {
+				self.emit("error", err, self.handle, self);
+			} else {
+				emitDebug("no error listener attached; error reported via debug only");
+			}
 
 			// Call error callback (legacy support)
 			if (typeof self.functions.onError === "function") {
@@ -892,18 +966,45 @@ function StubbornTCP(options = {}) {
 	self.Close = self.close; // Legacy support
 
 	/**
-	 * Open a TCP connection to the specified host and port
+	 * Open a TCP connection to the specified host and port. Calling it on a connected (or
+	 * reconnecting) client replaces that connection without a `disconnect` event and keeps
+	 * the auto-reconnect and heartbeat settings.
 	 * @param {string} host - Host to connect to
 	 * @param {number} port - Port to connect to
 	 * @param {any} [instance] - Optional instance identifier (ignored)
 	 * @param {number} [bufferSizeArg] - Optional buffer size (ignored)
 	 * @returns {object} This TCP instance
+	 * @throws {TypeError} `ERR_MISSING_ARGS` when no port is given and none is configured. Omitted
+	 * `host` / `port` fall back to the last ones used, which start out as the constructor options.
 	 */
+	// eslint-disable-next-line no-unused-vars -- `instance` / `bufferSizeArg` are accepted for legacy callers and ignored
 	self.open = (host, port, instance, bufferSizeArg) => {
+		// Explicit arguments win; otherwise use the last host/port, which starts out as the
+		// constructor's `host` / `port` options.
+		host = host ?? self.settings.connection.host ?? undefined;
+		port = port ?? self.settings.connection.port;
+		if (port === null || port === undefined) {
+			const err = new TypeError(
+				"StubbornTCP.open(): no port to connect to; pass open(host, port) or set the host and port constructor options"
+			);
+			err.code = "ERR_MISSING_ARGS";
+			throw err;
+		}
 		emitDebug(`open(${host}:${port})`);
 
-		// Close existing connection if open
-		if (self._connectState === 1) self.close();
+		// Replace any existing connection or pending reconnect. Unlike close(), this keeps
+		// auto-reconnect and the heartbeat configuration as they are: createClient() destroys
+		// the old socket, whose late close event is then ignored.
+		if (self.settings.autoReconnect.timer) {
+			clearTimeout(self.settings.autoReconnect.timer);
+			self.settings.autoReconnect.timer = null;
+		}
+		self.settings.autoReconnect.isReconnecting = false;
+		if (self.settings.heartbeat.timer) {
+			clearTimeout(self.settings.heartbeat.timer);
+			self.settings.heartbeat.timer = null;
+		}
+		self._connectState = 0;
 		return createClient(host, port);
 	};
 	self.Open = self.open; // Legacy support

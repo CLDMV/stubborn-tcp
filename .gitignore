@@ -5,3 +5,16 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# Build output — rebuilt by `npm run build` (and by `prepack` on npm pack/publish)
+dist/
+
+# Test / coverage output
+coverage/
+.vitest-coverage-tmp/
+.vitest-coverage-blobs/
+
+# Scratch + local packs
+tmp/
+trash/
+*.tgz

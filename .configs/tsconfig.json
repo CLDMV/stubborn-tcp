@@ -1,0 +1,20 @@
+{
+	"compilerOptions": {
+		"allowJs": true,
+		"checkJs": false,
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"outDir": "../types",
+		"rootDir": "..",
+		"target": "ES2022",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"lib": ["ES2022"],
+		"types": ["node"],
+		"strict": false,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true
+	},
+	"include": ["../src/**/*.mjs"],
+	"exclude": ["../node_modules", "../tests", "../coverage", "../dist"]
+}
