@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-03T11:39:12-07:00 (1791052752)
+ *	@Last modified time: 2026-11-01T13:28:04-08:00 (1793568484)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -17,13 +17,13 @@
  * @fileoverview Bundler config — produces the published dist/ output from src/.
  *
  *  - dist/index.mjs — the real esbuild bundle of src/index.mjs (ESM, minified).
- *  - dist/index.cjs — NOT a second bundle: src/cjs-shim.cjs is copied in verbatim by
+ *  - dist/index.cjs — NOT a second bundle: src/index.cjs is copied in verbatim by
  *    onSuccess below. Node's require() loads an ES module synchronously when it has no
  *    top-level await (the ESM build has none), so the shim just requires ./index.mjs.
  *
  * Constraints:
- *  - `target: "node14"` matches package.json `engines` (>=14) — `import` of the ESM build
- *    keeps working there; only require() needs require(esm) (see src/cjs-shim.cjs).
+ *  - `target: "node22"` matches package.json `engines` (>=22.22.0) — `import` of the ESM build
+ *    keeps working there; only require() needs require(esm) (see src/index.cjs).
  *  - `keepNames: true` keeps `StubbornTCP.name` (and stack-trace names) intact under
  *    minification.
  *  - `removeNodeProtocol: false` leaves built-in module specifiers exactly as written.
@@ -41,7 +41,7 @@ export default defineConfig({
 	outExtension() {
 		return { js: ".mjs" };
 	},
-	target: "node14",
+	target: "node22",
 	platform: "node",
 	splitting: false,
 	sourcemap: true,
@@ -51,6 +51,6 @@ export default defineConfig({
 	keepNames: true,
 	removeNodeProtocol: false,
 	onSuccess() {
-		copyFileSync("src/cjs-shim.cjs", "dist/index.cjs");
+		copyFileSync("src/index.cjs", "dist/index.cjs");
 	}
 });
