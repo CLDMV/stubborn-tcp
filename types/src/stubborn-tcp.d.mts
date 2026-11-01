@@ -1,4 +1,3 @@
-export default StubbornTCP;
 /**
  * Stubborn TCP Client - Auto-reconnecting TCP socket wrapper
  *
@@ -478,3 +477,4 @@ export class StubbornTCP {
     open: (host: string, port: number, instance?: any, bufferSizeArg?: number) => object;
     Open: (host: string, port: number, instance?: any, bufferSizeArg?: number) => object;
 }
+export { StubbornTCP as default };

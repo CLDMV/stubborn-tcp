@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-03T11:39:09-07:00 (1791052749)
+ *	@Last modified time: 2026-11-01T15:22:43-08:00 (1793575363)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -1021,8 +1021,5 @@ function StubbornTCP(options = {}) {
 StubbornTCP.prototype = Object.create(EventEmitter.prototype);
 StubbornTCP.prototype.constructor = StubbornTCP;
 
-// ESM export (default)
-export default StubbornTCP;
-
-// Named export for compatibility
-export { StubbornTCP };
+// ESM exports: default and named (named kept for compatibility)
+export { StubbornTCP, StubbornTCP as default };
