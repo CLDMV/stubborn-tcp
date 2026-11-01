@@ -50,7 +50,7 @@ It is built for long-lived connections to devices and services — control proto
 
 ### Requirements
 
-- **Node.js ^20.19.0 or >=22.13.0**.
+- **Node.js >=22.22.0**.
 - **`require()`** — the CommonJS entry loads the ES module build through `require(esm)`, and throws `ERR_REQUIRE_ESM` with a pointer to `import()` on older versions.
 - **Platforms**: Windows, macOS, Linux.
 - **Protocol Support**: TCP and TLS/SSL.
