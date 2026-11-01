@@ -11,7 +11,7 @@
 			"stubborn-tcp-dev": {
 				"types": "./types/index.d.mts",
 				"import": "./src/index.mjs",
-				"require": "./src/cjs-shim.cjs"
+				"require": "./src/index.cjs"
 			},
 			"types": "./types/index.d.mts",
 			"import": "./dist/index.mjs",

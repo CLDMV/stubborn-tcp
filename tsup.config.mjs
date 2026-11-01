@@ -17,13 +17,13 @@
  * @fileoverview Bundler config — produces the published dist/ output from src/.
  *
  *  - dist/index.mjs — the real esbuild bundle of src/index.mjs (ESM, minified).
- *  - dist/index.cjs — NOT a second bundle: src/cjs-shim.cjs is copied in verbatim by
+ *  - dist/index.cjs — NOT a second bundle: src/index.cjs is copied in verbatim by
  *    onSuccess below. Node's require() loads an ES module synchronously when it has no
  *    top-level await (the ESM build has none), so the shim just requires ./index.mjs.
  *
  * Constraints:
  *  - `target: "node14"` matches package.json `engines` (>=14) — `import` of the ESM build
- *    keeps working there; only require() needs require(esm) (see src/cjs-shim.cjs).
+ *    keeps working there; only require() needs require(esm) (see src/index.cjs).
  *  - `keepNames: true` keeps `StubbornTCP.name` (and stack-trace names) intact under
  *    minification.
  *  - `removeNodeProtocol: false` leaves built-in module specifiers exactly as written.
@@ -51,6 +51,6 @@ export default defineConfig({
 	keepNames: true,
 	removeNodeProtocol: false,
 	onSuccess() {
-		copyFileSync("src/cjs-shim.cjs", "dist/index.cjs");
+		copyFileSync("src/index.cjs", "dist/index.cjs");
 	}
 });

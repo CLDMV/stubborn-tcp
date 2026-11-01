@@ -1,7 +1,7 @@
 /**
  *
  *	@Project: @cldmv/stubborn-tcp
- *	@Filename: /tests/cjs-shim.test.vitest.mjs
+ *	@Filename: /tests/cjs-entry.test.vitest.mjs
  *	@Date: 2026-10-03T11:28:50-07:00 (1791052130)
  *	@Author: Nate Corcoran <CLDMV>
  *	@Email: <Shinrai@users.noreply.github.com>
@@ -24,9 +24,9 @@ import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 
 const require = createRequire(import.meta.url);
-const shimPath = require.resolve("../src/cjs-shim.cjs");
+const shimPath = require.resolve("../src/index.cjs");
 
-describe("src/cjs-shim.cjs", () => {
+describe("src/index.cjs", () => {
 	it("exports the constructor with StubbornTCP and default aliases", () => {
 		const cjs = require(shimPath);
 		expect(typeof cjs).toBe("function");

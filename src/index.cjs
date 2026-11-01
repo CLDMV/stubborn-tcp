@@ -1,7 +1,7 @@
 /**
  *
  *	@Project: @cldmv/stubborn-tcp
- *	@Filename: /src/cjs-shim.cjs
+ *	@Filename: /src/index.cjs
  *	@Date: 2025-10-06T17:20:17-07:00 (1759796417)
  *	@Author: Nate Corcoran <CLDMV>
  *	@Email: <Shinrai@users.noreply.github.com>
