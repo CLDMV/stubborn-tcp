@@ -30,7 +30,7 @@
 		"prepack": "npm run build",
 		"prepare": "node -e \"import('./.githooks/install.mjs').catch(()=>{})\"",
 		"test": "node tests/run-vitest.mjs && npm run test:cjs",
-		"test:cjs": "npm run build && node --test tests/cjs/entry.test.cjs",
+		"test:cjs": "npm run build && node --conditions=stubborn-tcp-dev --test tests/cjs/entry.test.cjs",
 		"test:watch": "vitest --config .configs/vitest.config.mjs",
 		"coverage": "node tests/run-vitest.mjs --coverage-quiet && npm run test:cjs",
 		"ci:coverage": "npm run coverage",
@@ -71,7 +71,7 @@
 	},
 	"license": "Apache-2.0",
 	"engines": {
-		"node": ">=14.0.0"
+		"node": "^20.19.0 || >=22.13.0"
 	},
 	"repository": {
 		"type": "git",

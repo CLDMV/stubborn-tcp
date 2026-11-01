@@ -23,7 +23,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 export default defineConfig({
 	root,
+	// Resolve the package to src/ (the stubborn-tcp-dev export condition). resolve.conditions replaces Vite's
+	// defaults, so they are repeated here.
+	resolve: { conditions: ["stubborn-tcp-dev", "module", "browser", "development|production"] },
+	ssr: { resolve: { conditions: ["stubborn-tcp-dev", "node", "development|production"] } },
 	test: {
+		nodeOptions: ["--conditions=stubborn-tcp-dev"],
 		include: ["tests/**/*.test.vitest.mjs"],
 		exclude: ["node_modules"],
 		environment: "node",

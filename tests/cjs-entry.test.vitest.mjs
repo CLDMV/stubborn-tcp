@@ -40,7 +40,7 @@ describe("src/index.cjs", () => {
 
 	it("throws ERR_REQUIRE_ESM with guidance when require(esm) is unavailable", () => {
 		// process.features is read-only, so this runs in a child Node process with require(esm)
-		// turned off — what Node.js before 20.19 / 22.12 looks like to the shim. (v8 coverage
+		// turned off — what Node.js before 20.19 / 22.13 looks like to the shim. (v8 coverage
 		// is per-process, so these lines show as uncovered in this run's report even though
 		// they execute here.)
 		const res = spawnSync(process.execPath, ["--no-experimental-require-module", "-e", `require(${JSON.stringify(shimPath)})`], {
@@ -49,7 +49,7 @@ describe("src/index.cjs", () => {
 		expect(res.status).not.toBe(0);
 		expect(res.stderr).toContain("ERR_REQUIRE_ESM");
 		expect(res.stderr).toContain(
-			`@cldmv/stubborn-tcp: require() needs Node.js ^20.19.0 or >=22.12.0 (this is ${process.version}). On older Node.js, load the package with import() instead.`
+			`@cldmv/stubborn-tcp: require() needs Node.js ^20.19.0 or >=22.13.0 (this is ${process.version}). On older Node.js, load the package with import() instead.`
 		);
 	});
 });

@@ -16,14 +16,14 @@
 /**
  * @fileoverview CommonJS entry: a thin synchronous re-export of the ESM build via
  * require(esm), copied verbatim to dist/index.cjs (see tsup.config.mjs). Node.js
- * without require(esm) (before 20.19 / 22.12) gets a clear error pointing at import().
+ * without require(esm) (before 20.19 / 22.13) gets a clear error pointing at import().
  * @module @cldmv/stubborn-tcp
  */
 "use strict";
 
 if (!process.features?.require_module) {
 	const error = new Error(
-		`@cldmv/stubborn-tcp: require() needs Node.js ^20.19.0 or >=22.12.0 (this is ${process.version}). On older Node.js, load the package with import() instead.`
+		`@cldmv/stubborn-tcp: require() needs Node.js ^20.19.0 or >=22.13.0 (this is ${process.version}). On older Node.js, load the package with import() instead.`
 	);
 	error.code = "ERR_REQUIRE_ESM";
 	throw error;
