@@ -14,19 +14,18 @@ It is built for long-lived connections to devices and services — control proto
 
 ## ✨ What's New
 
-### Latest: v1.0.4 (October 2026)
+### Latest: v1.0.5 (November 2026)
 
-- **TLS connections work** — the `tls` option shadowed Node.js's `tls` module inside the constructor, so every TLS connection attempt threw `tls.connect is not a function`. `tls: true` now connects over TLS, and `secureConnect` and the TLS helper methods work as documented (#1).
-- **Built package with TypeScript declarations** — the code now ships as a minified `dist/` bundle with `.d.mts` declarations; `test/` and `examples/` are no longer published. The package root exports are unchanged, and `require()` (Node.js ^20.19.0 or >=22.12.0) now works in esbuild/webpack bundles and fails with a clear `ERR_REQUIRE_ESM` message on older Node.js (#1).
-- **Connection fixes** — an unobserved socket error no longer crashes the process, `failToConnect` now fires for each failed attempt, `open()` on a connected client keeps it usable, `open()` without arguments uses the constructor's host and port, and `connectionTimeout` no longer drops idle connections (a new opt-in `idleTimeout` covers that) ([#9](https://github.com/CLDMV/stubborn-tcp/pull/9), [#10](https://github.com/CLDMV/stubborn-tcp/pull/10), [#11](https://github.com/CLDMV/stubborn-tcp/pull/11), [#13](https://github.com/CLDMV/stubborn-tcp/pull/13)).
-- [View full v1.0.4 Changelog](https://github.com/CLDMV/stubborn-tcp/blob/master/docs/changelog/v1/v1.0.4.md)
+- **Node.js 22.22.0 or newer is required** — `engines.node` moves from `>=14.0.0` to `>=22.22.0`, the bundle is built for Node.js 22, and the CommonJS entry's `ERR_REQUIRE_ESM` message names the new floor. The build and test toolchain needs Node.js 22.22, so older versions can no longer be tested. Runtime behaviour is otherwise unchanged ([#32](https://github.com/CLDMV/stubborn-tcp/pull/32)).
+- **Complete TypeScript declarations** — the declarations are regenerated with TypeScript 6 and now describe `StubbornTCP` as a class with its instance members (`open()`, `write()`, `close()`, the heartbeat and TLS helpers), where v1.0.4's TypeScript 7 output exposed only `prototype: any` ([#34](https://github.com/CLDMV/stubborn-tcp/pull/34)).
+- [View full v1.0.5 Changelog](https://github.com/CLDMV/stubborn-tcp/blob/master/docs/changelog/v1/v1.0.5.md)
 
 ### Recent Releases
 
+- **v1.0.4** (October 2026) — TLS connections work, built `dist/` package with TypeScript declarations, and connection fixes for crashes, `failToConnect`, `open()` and idle timeouts ([Changelog](https://github.com/CLDMV/stubborn-tcp/blob/master/docs/changelog/v1/v1.0.4.md))
 - **v1.0.3** (October 2025) — `debug: true` emits `debug` events instead of printing to the console; zero or negative timeouts disable the socket timeout ([Changelog](https://github.com/CLDMV/stubborn-tcp/blob/master/docs/changelog/v1/v1.0.3.md))
 - **v1.0.2** (October 2025) — `data` event arguments become `(data, handle, instance)` ([Changelog](https://github.com/CLDMV/stubborn-tcp/blob/master/docs/changelog/v1/v1.0.2.md))
 - **v1.0.1** (October 2025) — `require()` returns the constructor instead of a Promise ([Changelog](https://github.com/CLDMV/stubborn-tcp/blob/master/docs/changelog/v1/v1.0.1.md))
-- **v1.0.0** (October 2025) — Initial release: auto-reconnecting TCP client with backoff, socket tuning and heartbeats ([Changelog](https://github.com/CLDMV/stubborn-tcp/blob/master/docs/changelog/v1/v1.0.0.md))
 
 📚 **For complete version history and detailed release notes, see the [docs/changelog/](https://github.com/CLDMV/stubborn-tcp/tree/master/docs/changelog/) folder.**
 
@@ -50,8 +49,8 @@ It is built for long-lived connections to devices and services — control proto
 
 ### Requirements
 
-- **Node.js 14.0 or higher** for `import` (ESM).
-- **`require()` needs Node.js ^20.19.0 or >=22.12.0** — the CommonJS entry loads the ES module build through `require(esm)`, and throws `ERR_REQUIRE_ESM` with a pointer to `import()` on older versions.
+- **Node.js >=22.22.0**.
+- **`require()`** — the CommonJS entry loads the ES module build through `require(esm)`, and throws `ERR_REQUIRE_ESM` with a pointer to `import()` on older versions.
 - **Platforms**: Windows, macOS, Linux.
 - **Protocol Support**: TCP and TLS/SSL.
 
