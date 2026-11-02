@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-11-01T13:28:04-08:00 (1793568484)
+ *	@Last modified time: 2026-11-01T16:30:30-08:00 (1793579430)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -22,8 +22,8 @@
  *    top-level await (the ESM build has none), so the shim just requires ./index.mjs.
  *
  * Constraints:
- *  - `target: "node22"` matches package.json `engines` (>=22.22.0) — `import` of the ESM build
- *    keeps working there; only require() needs require(esm) (see src/index.cjs).
+ *  - `target: "node14"` matches package.json `engines` (>=14.0.0) — `import` of the ESM build
+ *    works there; only require() needs require(esm) (see src/index.cjs).
  *  - `keepNames: true` keeps `StubbornTCP.name` (and stack-trace names) intact under
  *    minification.
  *  - `removeNodeProtocol: false` leaves built-in module specifiers exactly as written.
@@ -41,7 +41,7 @@ export default defineConfig({
 	outExtension() {
 		return { js: ".mjs" };
 	},
-	target: "node22",
+	target: "node14",
 	platform: "node",
 	splitting: false,
 	sourcemap: true,
