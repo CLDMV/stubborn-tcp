@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-03T13:30:00-07:00 (1791059400)
+ *	@Last modified time: 2026-11-07T21:37:04-08:00 (1794116224)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -18,7 +18,7 @@
  * used, which starts out as the constructor's `host` / `port`. All servers are local.
  */
 import { describe, it, expect, afterEach } from "vitest";
-import StubbornTCP from "../src/index.mjs";
+import StubbornTCP from "@cldmv/stubborn-tcp";
 import { startEchoServer, waitFor } from "./helpers/server.mjs";
 
 const cleanup = [];

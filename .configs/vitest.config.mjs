@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-03T11:39:14-07:00 (1791052754)
+ *	@Last modified time: 2026-11-07T21:37:02-08:00 (1794116222)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -25,29 +25,33 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // devCondition() puts the package's stubborn-tcp-dev condition (which routes the "." export to
 // src/) ahead of Vite's default conditions for the client and SSR resolvers, and on the worker
 // command line.
-export default mergeConfig(
-	devCondition({ root }),
-	defineConfig({
-		root,
-		test: {
-			include: ["tests/**/*.test.vitest.mjs"],
-			exclude: ["node_modules"],
-			environment: "node",
-			testTimeout: 30000,
-			// "dot" keeps CI logs to one character per test file instead of a full
-			// "RUN vX.Y.Z" + per-file pass/fail block for every file — vitest's
-			// non-interactive fallback (no TTY to redraw) otherwise reprints that
-			// whole block per file on top of the final aggregate summary, which
-			// dominates the log on a suite this size. The final "Test Files X
-			// passed" / "Tests Y passed" summary is unaffected — every built-in
-			// reporter prints it regardless of per-test verbosity.
-			reporters: ["dot"],
-			coverage: {
-				provider: "v8",
-				include: ["src/**"],
-				exclude: ["**/*.json", "tests/**"],
-				reporter: ["text", "html", "json-summary", "json"]
+// `--mode=dist` (npm run test:dist) leaves the -dev condition off, so tests that import "@cldmv/stubborn-tcp" by name run
+// against the build in dist/ instead of src/.
+export default defineConfig(({ mode }) =>
+	mergeConfig(
+		mode === "dist" ? {} : devCondition({ root }),
+		defineConfig({
+			root,
+			test: {
+				include: ["tests/**/*.test.vitest.mjs"],
+				exclude: ["node_modules"],
+				environment: "node",
+				testTimeout: 30000,
+				// "dot" keeps CI logs to one character per test file instead of a full
+				// "RUN vX.Y.Z" + per-file pass/fail block for every file — vitest's
+				// non-interactive fallback (no TTY to redraw) otherwise reprints that
+				// whole block per file on top of the final aggregate summary, which
+				// dominates the log on a suite this size. The final "Test Files X
+				// passed" / "Tests Y passed" summary is unaffected — every built-in
+				// reporter prints it regardless of per-test verbosity.
+				reporters: ["dot"],
+				coverage: {
+					provider: "v8",
+					include: ["src/**"],
+					exclude: ["**/*.json", "tests/**"],
+					reporter: ["text", "html", "json-summary", "json"]
+				}
 			}
-		}
-	})
+		})
+	)
 );
