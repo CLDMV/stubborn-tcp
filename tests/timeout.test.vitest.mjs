@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-03T11:39:20-07:00 (1791052760)
+ *	@Last modified time: 2026-11-07T21:37:05-08:00 (1794116225)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -25,7 +25,7 @@
  * the connected state.
  */
 import { describe, it, expect, afterEach } from "vitest";
-import StubbornTCP from "../src/index.mjs";
+import StubbornTCP from "@cldmv/stubborn-tcp";
 import { startSilentServer, waitFor, delay } from "./helpers/server.mjs";
 
 const cleanup = [];

@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-03T11:39:21-07:00 (1791052761)
+ *	@Last modified time: 2026-11-07T21:37:05-08:00 (1794116225)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -22,7 +22,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { EventEmitter } from "node:events";
 import tls from "node:tls";
-import StubbornTCP, { StubbornTCP as NamedStubbornTCP } from "../src/index.mjs";
+import StubbornTCP, { StubbornTCP as NamedStubbornTCP } from "@cldmv/stubborn-tcp";
 import { startEchoServer, startSilentServer, closedPort, waitFor, delay } from "./helpers/server.mjs";
 
 const cleanup = [];
