@@ -2,13 +2,13 @@
 /**
  *
  *	@Project: @cldmv/stubborn-tcp
- *	@Filename: /.githooks/install.mjs
+ *	@Filename: .githooks/install.mjs
  *	@Date: 2026-10-03T11:23:18-07:00 (1791051798)
  *	@Author: Nate Corcoran <CLDMV>
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-03T11:39:15-07:00 (1791052755)
+ *	@Last modified time: 2026-11-28T09:55:57-08:00 (1795888557)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *

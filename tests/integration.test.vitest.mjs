@@ -1,13 +1,13 @@
 /**
  *
  *	@Project: @cldmv/stubborn-tcp
- *	@Filename: /tests/integration.test.vitest.mjs
+ *	@Filename: tests/integration.test.vitest.mjs
  *	@Date: 2025-10-10T13:47:00-07:00 (1760129220)
  *	@Author: Nate Corcoran <CLDMV>
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-11-07T21:37:04-08:00 (1794116224)
+ *	@Last modified time: 2026-11-28T09:56:05-08:00 (1795888565)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
