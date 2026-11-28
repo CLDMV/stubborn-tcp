@@ -14,9 +14,13 @@
  */
 
 /**
- * @fileoverview CommonJS entry: a thin synchronous re-export of the ESM build via
- * require(esm), copied verbatim to dist/index.cjs (see tsup.config.mjs). Node.js
- * without require(esm) (older than ^20.19.0 || >=22.13.0) gets a clear error pointing at import().
+ * @fileoverview CommonJS entry point: the generic CLDMV drop-in shim
+ * (CLDMV/.github docs/conventions/package-layout.md).
+ *
+ * It returns what `import` gives: the single distinct exported value when there is one
+ * (here the `StubbornTCP` class, which is both the default and the `StubbornTCP` export), so
+ * `require("@cldmv/stubborn-tcp")` is the class itself; otherwise the module object. The build
+ * copies it verbatim into dist/, where `./index.mjs` resolves to the built entry.
  * @module @cldmv/stubborn-tcp
  */
 "use strict";
@@ -29,6 +33,12 @@ if (!process.features?.require_module) {
 	throw error;
 }
 
-module.exports = require("./index.mjs").default;
-module.exports.StubbornTCP = module.exports;
-module.exports.default = module.exports;
+// Same exports as `import`. One distinct exported value (aliases of it count once) comes back as that value,
+// so require(x)(...) works; anything else comes back as the module object ({ default, ...named }).
+const esm = require("./index.mjs");
+const values = new Set(
+	Object.keys(esm)
+		.filter((key) => key !== "__esModule")
+		.map((key) => esm[key])
+);
+module.exports = values.size === 1 ? values.values().next().value : esm;

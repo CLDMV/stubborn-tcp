@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-03T11:39:19-07:00 (1791052759)
+ *	@Last modified time: 2026-11-07T21:37:04-08:00 (1794116224)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -21,7 +21,7 @@
  * refused local port instead.
  */
 import { describe, it, expect, afterEach } from "vitest";
-import StubbornTCP from "../src/index.mjs";
+import StubbornTCP from "@cldmv/stubborn-tcp";
 import { startEchoServer, startSilentServer, closedPort, waitFor, delay } from "./helpers/server.mjs";
 
 const cleanup = [];

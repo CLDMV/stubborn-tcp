@@ -34,9 +34,10 @@ test("require() returns the same StubbornTCP constructor as import", async () =>
 	const esm = await import("../../dist/index.mjs");
 
 	assert.equal(cjs, esm.default);
-	assert.equal(cjs.StubbornTCP, esm.default);
-	assert.equal(cjs.default, esm.default);
-	assert.equal(esm.StubbornTCP, esm.default);
+	assert.equal(cjs, esm.StubbornTCP);
+	// The generic shim attaches nothing to the class.
+	assert.equal(cjs.StubbornTCP, undefined);
+	assert.equal(cjs.default, undefined);
 	assert.equal(typeof cjs, "function");
 	assert.equal(cjs.name, "StubbornTCP");
 });

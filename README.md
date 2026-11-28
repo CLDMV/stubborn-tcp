@@ -50,7 +50,7 @@ It is built for long-lived connections to devices and services — control proto
 
 - **Node.js >=14.0.0** for `import`.
 - **`require()`** needs Node.js ^20.19.0 or >=22.13.0 — the CommonJS entry loads the ES module build through `require(esm)`, and throws `ERR_REQUIRE_ESM` with a pointer to `import()` on older versions.
-- **Development**: developing this package needs Node.js 22.22.0 or later (`devEngines`).
+- **Development**: developing this package needs Node.js 22.22.0 or later (`devEngines`). `npm test` runs the suite against `src/`, and `npm run test:dist` builds the package and runs it against `dist/`.
 - **Platforms**: Windows, macOS, Linux.
 - **Protocol Support**: TCP and TLS/SSL.
 
