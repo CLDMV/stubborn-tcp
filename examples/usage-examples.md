@@ -83,21 +83,12 @@ client.on("disconnect", () => {
 client.open();
 ```
 
-### Destructured Import
+### Class Export
+
+`require("@cldmv/stubborn-tcp")` is the `StubbornTCP` class itself. There is no `.StubbornTCP` or `.default` property on it, so don't destructure or unwrap the result.
 
 ```javascript
-const { StubbornTCP } = require("@cldmv/stubborn-tcp");
-
-const client = new StubbornTCP({
-	host: "localhost",
-	port: 9000
-});
-```
-
-### Default Export
-
-```javascript
-const StubbornTCP = require("@cldmv/stubborn-tcp").default;
+const StubbornTCP = require("@cldmv/stubborn-tcp");
 
 const client = new StubbornTCP({
 	host: "localhost",

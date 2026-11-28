@@ -22,20 +22,36 @@
 import { describe, it, expect } from "vitest";
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 
 const require = createRequire(import.meta.url);
 const shimPath = require.resolve("../src/index.cjs");
+const esmPath = require.resolve("../src/index.mjs");
 
 describe("src/index.cjs", () => {
-	it("exports the constructor with StubbornTCP and default aliases", () => {
+	it("exports the StubbornTCP class itself, and it constructs", () => {
 		const cjs = require(shimPath);
 		expect(typeof cjs).toBe("function");
 		expect(cjs.name).toBe("StubbornTCP");
-		expect(cjs.StubbornTCP).toBe(cjs);
-		expect(cjs.default).toBe(cjs);
-		const instance = cjs({ debug: false });
+		expect(cjs.StubbornTCP).toBeUndefined();
+		expect(cjs.default).toBeUndefined();
+		const instance = new cjs({ debug: false });
 		expect(instance).toBeInstanceOf(cjs);
 		instance.close();
+	});
+
+	it("is the ESM default, unmodified, in a fresh process", () => {
+		// A fresh Node process so the ESM entry and require() share one module instance (Vitest's
+		// module runner would load a second copy) and nothing earlier has touched the class.
+		const script = `
+			const c = require(${JSON.stringify(shimPath)});
+			import(${JSON.stringify(pathToFileURL(esmPath).href)}).then((esm) => {
+				console.log(JSON.stringify([c === esm.default, c === esm.StubbornTCP, "StubbornTCP" in c, "default" in c]));
+			});
+		`;
+		const res = spawnSync(process.execPath, ["-e", script], { encoding: "utf8" });
+		expect(res.status).toBe(0);
+		expect(JSON.parse(res.stdout)).toEqual([true, true, false, false]);
 	});
 
 	it("throws ERR_REQUIRE_ESM with guidance when require(esm) is unavailable", () => {
