@@ -58,8 +58,8 @@ jobs:
     diff:
         uses: CLDMV/.github/.github/workflows/reusable-bundle-size.yml@v4
         with:
-            build_command: "npm run build" # tsup -> dist/index.mjs + the copied dist/index.cjs shim
-            dist_paths: "dist/*.mjs,dist/*.cjs,types/**" # package.json `files` (dist/ minus *.map, types/)
+            build_command: "npm run build" # esbuild per module -> dist/*.mjs + the copied dist/index.cjs shim
+            dist_paths: "dist/**.mjs,dist/**.cjs,types/**" # package.json `files` (dist/ minus *.map, types/)
             # warning_pct: 5
             # warning_bytes: 500
             # comment_mode: "update"

@@ -267,7 +267,7 @@ jobs:
             format_check_command: ${{ github.event.inputs.format_check_command || 'npm run format:check --if-present' }}
             build_command: "npm run build:ci"
             # Coverage legs build with the same full gate (lint + format:check +
-            # types:build + tsup) as the CI build. Coverage is measured on src/**,
+            # types:build + the per-module build) as the CI build. Coverage is measured on src/**,
             # which the build leaves in place.
             coverage_build_command: "npm run build:ci"
             skip_performance_tests: false
