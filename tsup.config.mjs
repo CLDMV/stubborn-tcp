@@ -1,13 +1,13 @@
 /**
  *
  *	@Project: @cldmv/stubborn-tcp
- *	@Filename: /tsup.config.mjs
+ *	@Filename: tsup.config.mjs
  *	@Date: 2026-10-03T11:23:31-07:00 (1791051811)
  *	@Author: Nate Corcoran <CLDMV>
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-11-01T16:30:30-08:00 (1793579430)
+ *	@Last modified time: 2026-11-28T09:56:07-08:00 (1795888567)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
